@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { verifySession } from "@/lib/auth/dal";
 import { logout } from "@/lib/actions/auth";
 
@@ -46,6 +47,7 @@ export async function Header() {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {session.isAuth ? (
             <form action={logout}>
               <Button variant="outline" size="sm" type="submit">

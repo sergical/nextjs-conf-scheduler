@@ -1,8 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { hash, compare } from "bcryptjs";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -28,93 +30,164 @@ export async function signup(
   _prevState: AuthState,
   formData: FormData
 ): Promise<AuthState> {
-  const rawData = {
-    name: formData.get("name") as string,
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-  };
+  const startTime = Date.now();
 
-  const validated = signupSchema.safeParse(rawData);
+  return Sentry.withServerActionInstrumentation(
+    "auth.signup",
+    { headers: await headers() },
+    async () => {
+      const rawData = {
+        name: formData.get("name") as string,
+        email: formData.get("email") as string,
+        password: formData.get("password") as string,
+      };
 
-  if (!validated.success) {
-    return {
-      fieldErrors: validated.error.flatten().fieldErrors,
-    };
-  }
+      const validated = signupSchema.safeParse(rawData);
 
-  const { name, email, password } = validated.data;
+      if (!validated.success) {
+        Sentry.logger.warn("Signup validation failed", {
+          action: "auth.signup",
+          validation_errors: Object.keys(validated.error.flatten().fieldErrors).join(", "),
+          duration_ms: Date.now() - startTime,
+        });
+        return {
+          fieldErrors: validated.error.flatten().fieldErrors,
+        };
+      }
 
-  // Check if user already exists
-  const existingUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+      const { name, email, password } = validated.data;
 
-  if (existingUser.length > 0) {
-    return { error: "An account with this email already exists" };
-  }
+      // Check if user already exists
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
 
-  // Hash password and create user
-  const hashedPassword = await hash(password, 10);
-  const userId = crypto.randomUUID();
+      if (existingUser.length > 0) {
+        Sentry.logger.info("Signup attempted with existing email", {
+          action: "auth.signup",
+          result: "duplicate_email",
+          duration_ms: Date.now() - startTime,
+        });
+        return { error: "An account with this email already exists" };
+      }
 
-  await db.insert(users).values({
-    id: userId,
-    name,
-    email,
-    password: hashedPassword,
-    createdAt: Date.now(),
-  });
+      // Hash password and create user
+      const hashedPassword = await hash(password, 10);
+      const userId = crypto.randomUUID();
 
-  await createSession(userId);
-  redirect("/");
+      await db.insert(users).values({
+        id: userId,
+        name,
+        email,
+        password: hashedPassword,
+        createdAt: Date.now(),
+      });
+
+      await createSession(userId);
+
+      Sentry.logger.info("User signed up", {
+        action: "auth.signup",
+        user_id: userId,
+        result: "success",
+        duration_ms: Date.now() - startTime,
+      });
+
+      redirect("/");
+    }
+  );
 }
 
 export async function login(
   _prevState: AuthState,
   formData: FormData
 ): Promise<AuthState> {
-  const rawData = {
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-  };
+  const startTime = Date.now();
 
-  const validated = loginSchema.safeParse(rawData);
+  return Sentry.withServerActionInstrumentation(
+    "auth.login",
+    { headers: await headers() },
+    async () => {
+      const rawData = {
+        email: formData.get("email") as string,
+        password: formData.get("password") as string,
+      };
 
-  if (!validated.success) {
-    return {
-      fieldErrors: validated.error.flatten().fieldErrors,
-    };
-  }
+      const validated = loginSchema.safeParse(rawData);
 
-  const { email, password } = validated.data;
+      if (!validated.success) {
+        Sentry.logger.warn("Login validation failed", {
+          action: "auth.login",
+          duration_ms: Date.now() - startTime,
+        });
+        return {
+          fieldErrors: validated.error.flatten().fieldErrors,
+        };
+      }
 
-  // Find user
-  const result = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+      const { email, password } = validated.data;
 
-  const user = result[0];
+      // Find user
+      const result = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
 
-  if (!user) {
-    return { error: "Invalid email or password" };
-  }
+      const user = result[0];
 
-  // Verify password
-  const passwordMatch = await compare(password, user.password);
+      if (!user) {
+        Sentry.logger.info("Login failed - user not found", {
+          action: "auth.login",
+          result: "user_not_found",
+          duration_ms: Date.now() - startTime,
+        });
+        return { error: "Invalid email or password" };
+      }
 
-  if (!passwordMatch) {
-    return { error: "Invalid email or password" };
-  }
+      // Verify password
+      const passwordMatch = await compare(password, user.password);
 
-  await createSession(user.id);
-  redirect("/");
+      if (!passwordMatch) {
+        Sentry.logger.info("Login failed - invalid password", {
+          action: "auth.login",
+          user_id: user.id,
+          result: "invalid_password",
+          duration_ms: Date.now() - startTime,
+        });
+        return { error: "Invalid email or password" };
+      }
+
+      await createSession(user.id);
+
+      Sentry.logger.info("User logged in", {
+        action: "auth.login",
+        user_id: user.id,
+        result: "success",
+        duration_ms: Date.now() - startTime,
+      });
+
+      redirect("/");
+    }
+  );
 }
 
 export async function logout() {
-  await deleteSession();
-  redirect("/login");
+  const startTime = Date.now();
+
+  return Sentry.withServerActionInstrumentation(
+    "auth.logout",
+    { headers: await headers() },
+    async () => {
+      await deleteSession();
+
+      Sentry.logger.info("User logged out", {
+        action: "auth.logout",
+        duration_ms: Date.now() - startTime,
+      });
+
+      redirect("/login");
+    }
+  );
 }

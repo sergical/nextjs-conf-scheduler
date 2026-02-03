@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc/server";
 import { Header } from "@/components/header";
 import { ScheduleGrid } from "@/components/schedule-grid";
 import { ScheduleFilters } from "@/components/schedule-filters";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type SearchParams = Promise<{
   track?: string;
@@ -51,7 +52,7 @@ export default async function SchedulePage({
         </div>
 
         <div className="mb-8">
-          <Suspense fallback={<div>Loading filters...</div>}>
+          <Suspense fallback={<div className="flex gap-2"><Skeleton className="h-9 w-24" /><Skeleton className="h-9 w-24" /><Skeleton className="h-9 w-24" /></div>}>
             <ScheduleFilters tracks={tracks} />
           </Suspense>
         </div>
