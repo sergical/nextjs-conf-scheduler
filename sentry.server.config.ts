@@ -3,7 +3,6 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
-import { vercelAIIntegration } from "@sentry/nextjs";
 import { libsqlIntegration } from "sentry-integration-libsql-client";
 import { libsqlClient } from "./lib/db";
 
@@ -20,9 +19,8 @@ Sentry.init({
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
 
-  // Add integrations for database and AI tracing
+  // Add integrations for database tracing
   integrations: [
     libsqlIntegration(libsqlClient, Sentry),
-    vercelAIIntegration(),
   ],
 });
