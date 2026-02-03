@@ -66,7 +66,7 @@ function formatDuration(start: number, end: number): string {
 export function TalkCard({ talk, showTime = true }: TalkCardProps) {
   return (
     <Link href={`/talks/${talk.id}`} className="block">
-      <Card className="h-full transition-all hover:ring-2 hover:ring-primary/20 hover:shadow-md">
+      <Card className="h-full transition-all hover:ring-2 hover:ring-primary/30 hover:shadow-lg hover:-translate-y-0.5">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div

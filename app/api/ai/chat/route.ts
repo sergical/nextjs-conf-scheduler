@@ -1,42 +1,54 @@
-import { streamText, createUIMessageStreamResponse } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { createUIMessageStreamResponse } from "ai";
+import * as Sentry from "@sentry/nextjs";
 import { requireAuth } from "@/lib/auth/dal";
-import { getAITools } from "@/lib/ai/tools";
-
-const SYSTEM_PROMPT = `You are an AI assistant helping conference attendees build their personalized schedule for Next.js Conf 2025.
-
-The conference is on October 22, 2025 in San Francisco. It's a single-day event with sessions throughout the day.
-
-Available tracks:
-- AI & Agents (id: ai): Build intelligent applications with AI agents and machine learning
-- Performance (id: perf): Optimize your applications for speed and efficiency
-- Full Stack (id: fullstack): End-to-end application development patterns
-- Developer Experience (id: dx): Tools and patterns for better developer productivity
-- Platform (id: platform): Infrastructure, deployment, and platform features
-
-When helping users:
-1. First understand their interests, skill level, and preferred session formats
-2. Use the searchTalks tool to find relevant sessions
-3. Check for time conflicts before suggesting multiple sessions
-4. Provide reasoning for each recommendation
-5. Create a cohesive schedule that balances their interests
-
-Always be helpful and explain why you're recommending specific talks based on the user's interests.`;
+import { runAgentPipeline } from "@/lib/ai/agents";
 
 export async function POST(req: Request) {
+  const startTime = Date.now();
   const { userId } = await requireAuth();
   const { messages } = await req.json();
 
-  const tools = getAITools(userId);
+  // Wrap the entire pipeline in a Sentry transaction
+  return Sentry.startSpan(
+    {
+      name: "ai.chat.request",
+      op: "ai.pipeline",
+      attributes: {
+        "ai.pipeline.name": "conference-scheduler",
+        "user.id": userId,
+      },
+    },
+    async () => {
+      // Convert messages to the format expected by the agent pipeline
+      const formattedMessages = messages.map(
+        (m: {
+          role: string;
+          content: string | Array<{ type: string; text?: string }>;
+        }) => ({
+          role: m.role as "user" | "assistant",
+          content:
+            typeof m.content === "string"
+              ? m.content
+              : (m.content as Array<{ type: string; text?: string }>)
+                  .filter((p) => p.type === "text")
+                  .map((p) => p.text || "")
+                  .join(""),
+        })
+      );
 
-  const result = streamText({
-    model: openai("gpt-4o"),
-    system: SYSTEM_PROMPT,
-    messages,
-    tools,
-  });
+      const result = await runAgentPipeline(formattedMessages, userId);
 
-  return createUIMessageStreamResponse({
-    stream: result.toUIMessageStream(),
-  });
+      // Wide event log for AI chat request
+      Sentry.logger.info("AI chat request processed", {
+        user_id: userId,
+        message_count: messages.length,
+        pipeline: "conference-scheduler",
+        duration_ms: Date.now() - startTime,
+      });
+
+      return createUIMessageStreamResponse({
+        stream: result.toUIMessageStream(),
+      });
+    }
+  );
 }
