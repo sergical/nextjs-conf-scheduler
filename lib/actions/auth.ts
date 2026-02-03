@@ -30,8 +30,6 @@ export async function signup(
   _prevState: AuthState,
   formData: FormData
 ): Promise<AuthState> {
-  const startTime = Date.now();
-
   return Sentry.withServerActionInstrumentation(
     "auth.signup",
     { headers: await headers() },
@@ -45,11 +43,6 @@ export async function signup(
       const validated = signupSchema.safeParse(rawData);
 
       if (!validated.success) {
-        Sentry.logger.warn("Signup validation failed", {
-          action: "auth.signup",
-          validation_errors: Object.keys(validated.error.flatten().fieldErrors).join(", "),
-          duration_ms: Date.now() - startTime,
-        });
         return {
           fieldErrors: validated.error.flatten().fieldErrors,
         };
@@ -65,11 +58,6 @@ export async function signup(
         .limit(1);
 
       if (existingUser.length > 0) {
-        Sentry.logger.info("Signup attempted with existing email", {
-          action: "auth.signup",
-          result: "duplicate_email",
-          duration_ms: Date.now() - startTime,
-        });
         return { error: "An account with this email already exists" };
       }
 
@@ -86,14 +74,6 @@ export async function signup(
       });
 
       await createSession(userId);
-
-      Sentry.logger.info("User signed up", {
-        action: "auth.signup",
-        user_id: userId,
-        result: "success",
-        duration_ms: Date.now() - startTime,
-      });
-
       redirect("/");
     }
   );
@@ -103,8 +83,6 @@ export async function login(
   _prevState: AuthState,
   formData: FormData
 ): Promise<AuthState> {
-  const startTime = Date.now();
-
   return Sentry.withServerActionInstrumentation(
     "auth.login",
     { headers: await headers() },
@@ -117,10 +95,6 @@ export async function login(
       const validated = loginSchema.safeParse(rawData);
 
       if (!validated.success) {
-        Sentry.logger.warn("Login validation failed", {
-          action: "auth.login",
-          duration_ms: Date.now() - startTime,
-        });
         return {
           fieldErrors: validated.error.flatten().fieldErrors,
         };
@@ -138,11 +112,6 @@ export async function login(
       const user = result[0];
 
       if (!user) {
-        Sentry.logger.info("Login failed - user not found", {
-          action: "auth.login",
-          result: "user_not_found",
-          duration_ms: Date.now() - startTime,
-        });
         return { error: "Invalid email or password" };
       }
 
@@ -150,43 +119,21 @@ export async function login(
       const passwordMatch = await compare(password, user.password);
 
       if (!passwordMatch) {
-        Sentry.logger.info("Login failed - invalid password", {
-          action: "auth.login",
-          user_id: user.id,
-          result: "invalid_password",
-          duration_ms: Date.now() - startTime,
-        });
         return { error: "Invalid email or password" };
       }
 
       await createSession(user.id);
-
-      Sentry.logger.info("User logged in", {
-        action: "auth.login",
-        user_id: user.id,
-        result: "success",
-        duration_ms: Date.now() - startTime,
-      });
-
       redirect("/");
     }
   );
 }
 
 export async function logout() {
-  const startTime = Date.now();
-
   return Sentry.withServerActionInstrumentation(
     "auth.logout",
     { headers: await headers() },
     async () => {
       await deleteSession();
-
-      Sentry.logger.info("User logged out", {
-        action: "auth.logout",
-        duration_ms: Date.now() - startTime,
-      });
-
       redirect("/login");
     }
   );
