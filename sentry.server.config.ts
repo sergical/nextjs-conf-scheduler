@@ -8,7 +8,7 @@ import { libsqlIntegration } from "sentry-integration-libsql-client";
 import { libsqlClient } from "./lib/db";
 
 Sentry.init({
-  dsn: "https://e5d5097165ecbeeef78b9f262e1a1b5c@o4505994951065600.ingest.us.sentry.io/4510689459372032",
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 1,
