@@ -7,7 +7,7 @@ import { checkConflicts, getTalkDetails, getTracks, getUserSchedule, searchTalks
 export const AGENTS = {
   router: {
     name: "router",
-    model: anthropic("claude-haiku-4-5-20250929"),
+    model: anthropic("claude-haiku-4-5-20251001"),
     description: "Routes requests to specialized agents",
   },
   search: {
@@ -17,7 +17,7 @@ export const AGENTS = {
   },
   info: {
     name: "info-agent",
-    model: anthropic("claude-haiku-4-5-20250929"),
+    model: anthropic("claude-haiku-4-5-20251001"),
     description: "Handles simple info queries like tracks and schedule",
   },
 } as const;
@@ -84,7 +84,7 @@ export async function routeRequest(userMessage: string): Promise<AgentType> {
       op: "ai.pipeline",
       attributes: {
         "ai.pipeline.name": "router",
-        "ai.model.id": "claude-haiku-4-5-20250929",
+        "ai.model.id": "claude-haiku-4-5-20251001",
       },
     },
     async () => {
@@ -161,7 +161,7 @@ export async function executeInfoAgent(
       op: "ai.pipeline",
       attributes: {
         "ai.pipeline.name": "info-agent",
-        "ai.model.id": "claude-haiku-4-5-20250929",
+        "ai.model.id": "claude-haiku-4-5-20251001",
       },
     },
     async () => {
