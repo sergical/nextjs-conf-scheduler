@@ -20,6 +20,7 @@ Run through this **30 minutes before** go-live:
   2. Sentry Issues view
   3. Sentry Performance view
   4. Sentry Logs view (for Module 3+)
+  4b. Sentry Metrics view (for Module 3+)
   5. Sentry AI Insights view (for Module 5)
 - [ ] Editor open with file tree visible
 - [ ] Screen share set to **editor + browser** layout
@@ -34,9 +35,9 @@ Run through this **30 minutes before** go-live:
 | 0:00 | 5 min | Intro + Sentry Setup Walkthrough | `main` | Walk through existing Sentry config, explain the stack |
 | 0:05 | 10 min | Module 1: Error Capture | `module-1-start` | Trigger hydration error, fix theme provider |
 | 0:15 | 10 min | Module 2: Tracing | `module-2-start` | Wrap server actions, show named traces |
-| 0:25 | 10 min | Module 3: Structured Logs | `module-3-start` | Enable logs, add wide events |
+| 0:25 | 10 min | Module 3: Logs & Metrics | `module-3-start` | Enable logs, add wide events + metrics |
 | 0:35 | 10 min | Module 4: DB Tracing | `module-4-start` | Add libsql integration, show query spans |
-| 0:45 | 12 min | Module 5: AI Monitoring | `module-5-start` | Add vercelAI integration, trace tool calls |
+| 0:45 | 12 min | Module 5: AI Monitoring | `module-5-start` | Add vercelAI integration + experimental_telemetry |
 | 0:57 | 3 min | Wrap-up | — | Recap, resources, Q&A |
 
 **Buffer rule:** If a module runs long, steal from Module 5 (it's the most skippable). If you're ahead, add more Sentry dashboard exploration.
@@ -127,7 +128,7 @@ pnpm dev
 
 ---
 
-### Module 3: Structured Logs — Wide Events (0:25 — 0:35)
+### Module 3: Structured Logs & Metrics (0:25 — 0:35)
 
 **Branch:**
 ```bash
@@ -141,15 +142,25 @@ pnpm dev
 3. Do the same for `instrumentation-client.ts` and `sentry.edge.config.ts`
 4. Open `lib/actions/schedule.ts` → add a `Sentry.logger.info()` call with structured attributes:
    - `talk_id`, `user_id`, `duration_ms`, `action`
-5. Do the same for auth actions
-6. Perform some actions → switch to Sentry Logs view
-7. **Show filtering:** filter by `action: "add_to_schedule"`, filter by `user_id`
-8. "This is the wide events pattern — one rich log beats twenty thin ones"
+5. **Then add metrics alongside the logs:**
+   - `Sentry.metrics.increment("schedule_add_success")` — counter for the event
+   - `Sentry.metrics.distribution("schedule_operation_duration", ...)` — duration distribution
+6. Do the same for auth actions (counters for login/signup success/failure, distribution for duration)
+7. Perform some actions → switch to Sentry Logs view
+8. **Show filtering:** filter by `action: "add_to_schedule"`, filter by `user_id`
+9. Switch to Sentry Metrics view → **show the counters and duration distribution**
+10. "Logs tell you *what happened* to a specific request. Metrics tell you *how often* and *how fast* across all requests."
 
 **Talking points:**
+- **Logs vs Metrics vs Exceptions decision framework:**
+  - Exception: something is broken → fix it
+  - Log: you need context about a specific request (who, what, why)
+  - Metric: you need to count or measure something over time (rate, p95)
 - Wide events: pack all context into one log entry so you can query any dimension
 - `Sentry.logger` gives you structured attributes, not just strings
 - Logs are correlated with traces — click through from log to trace
+- `Sentry.metrics.increment()` for countable events, `.distribution()` for durations
+- Rule of thumb: if you'd alert on a *count* or *percentile*, use a metric; if you'd search for a *specific request*, use a log
 
 **Files touched:**
 - `sentry.server.config.ts`
@@ -202,24 +213,26 @@ pnpm dev
 2. Ask: "What AI talks are available?"
 3. Check Sentry → "No AI visibility"
 4. Open `sentry.server.config.ts` → add `vercelAIIntegration()`
-5. Open `lib/ai/tools.ts` → wrap tool execute functions with `Sentry.startSpan`:
-   - `op: "gen_ai.execute_tool"`
-   - `name: "execute_tool searchTalks"`
-   - Set attributes: `gen_ai.tool.name`, `gen_ai.tool.input`, `gen_ai.tool.output_count`
-6. Open `app/api/ai/chat/route.ts` → add wide event log for the chat request
+5. Open `lib/ai/agents.ts` → add `experimental_telemetry: { isEnabled: true }` to all 3 AI SDK calls:
+   - `generateText` in `routeRequest()`
+   - `streamText` in `executeSearchAgent()`
+   - `streamText` in `executeInfoAgent()`
+6. "That's it — no manual spans needed. The integration + telemetry flag auto-instruments everything."
 7. Ask the AI another question → check Sentry
 8. **Show AI Insights** — LLM call spans, tool execution spans, token usage
 9. **Show the trace** — full path from HTTP request → LLM → tool → DB
+10. "Notice the tool execution spans appeared automatically — no `Sentry.startSpan` wrappers in `tools.ts`"
 
 **Talking points:**
-- `vercelAIIntegration()` auto-captures LLM calls — model, tokens, duration
-- Manual `gen_ai.execute_tool` spans give you visibility into what tools the AI used
+- `vercelAIIntegration()` + `experimental_telemetry: { isEnabled: true }` = full auto-instrumentation
+- LLM calls, tool executions, and streaming are all captured automatically
+- No need to manually wrap every tool with `Sentry.startSpan` — the integration does it for you
+- The pipeline-level `Sentry.startSpan` in `route.ts` is still useful for custom business context
 - AI Insights dashboard gives you aggregate metrics across all AI usage
 
 **Files touched:**
 - `sentry.server.config.ts`
-- `lib/ai/tools.ts`
-- `app/api/ai/chat/route.ts`
+- `lib/ai/agents.ts`
 
 ---
 
@@ -230,8 +243,9 @@ pnpm dev
    - Issues: errors caught automatically
    - Performance: traces with named server actions + DB spans
    - Logs: structured wide events
-   - AI Insights: LLM and tool monitoring
-2. "We started with the Sentry SDK configured, and in 50 minutes added error capture, tracing, logs, DB visibility, and AI monitoring"
+   - Metrics: counters and duration distributions
+   - AI Insights: auto-instrumented LLM and tool monitoring
+2. "We started with the Sentry SDK configured, and in 50 minutes added error capture, tracing, logs, metrics, DB visibility, and AI monitoring"
 3. Share resources (link to `WORKSHOP.md` and Sentry docs)
 
 ---

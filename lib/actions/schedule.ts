@@ -9,8 +9,6 @@ import { db } from "@/lib/db";
 import { userSchedules } from "@/lib/db/schema";
 
 export async function addToSchedule(talkId: string) {
-  const startTime = Date.now();
-
   return Sentry.withServerActionInstrumentation(
     "schedule.addToSchedule",
     { headers: await headers() },
@@ -25,13 +23,6 @@ export async function addToSchedule(talkId: string) {
         .limit(1);
 
       if (existing.length > 0) {
-        Sentry.logger.info("Schedule add attempted - already exists", {
-          action: "schedule.addToSchedule",
-          user_id: userId,
-          talk_id: talkId,
-          result: "duplicate",
-          duration_ms: Date.now() - startTime,
-        });
         return { error: "Talk already in your schedule" };
       }
 
@@ -45,22 +36,12 @@ export async function addToSchedule(talkId: string) {
       revalidatePath("/my-schedule");
       revalidatePath(`/talks/${talkId}`);
 
-      Sentry.logger.info("Schedule item added", {
-        action: "schedule.addToSchedule",
-        user_id: userId,
-        talk_id: talkId,
-        result: "success",
-        duration_ms: Date.now() - startTime,
-      });
-
       return { success: true };
     },
   );
 }
 
 export async function removeFromSchedule(talkId: string) {
-  const startTime = Date.now();
-
   return Sentry.withServerActionInstrumentation(
     "schedule.removeFromSchedule",
     { headers: await headers() },
@@ -74,14 +55,6 @@ export async function removeFromSchedule(talkId: string) {
       revalidatePath("/");
       revalidatePath("/my-schedule");
       revalidatePath(`/talks/${talkId}`);
-
-      Sentry.logger.info("Schedule item removed", {
-        action: "schedule.removeFromSchedule",
-        user_id: userId,
-        talk_id: talkId,
-        result: "success",
-        duration_ms: Date.now() - startTime,
-      });
 
       return { success: true };
     },

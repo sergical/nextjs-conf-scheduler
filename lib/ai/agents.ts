@@ -92,6 +92,7 @@ export async function routeRequest(userMessage: string): Promise<AgentType> {
         model: AGENTS.router.model,
         system: routerSystemPrompt,
         prompt: userMessage,
+        experimental_telemetry: { isEnabled: true },
       });
 
       const agent = text.trim().toLowerCase() as AgentType;
@@ -143,6 +144,7 @@ export async function executeSearchAgent(
         system: searchAgentSystemPrompt,
         messages,
         tools: getSearchTools(userId),
+        experimental_telemetry: { isEnabled: true },
       });
 
       return result;
@@ -170,6 +172,7 @@ export async function executeInfoAgent(
         system: infoAgentSystemPrompt,
         messages,
         tools: getInfoTools(userId),
+        experimental_telemetry: { isEnabled: true },
       });
 
       return result;
