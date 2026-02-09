@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { Card, CardContent } from "@/components/ui/card";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 const EXAMPLE_PROMPTS = [
   "I'm interested in AI and machine learning talks",
@@ -17,10 +17,7 @@ const EXAMPLE_PROMPTS = [
 export function AIChat() {
   const [inputValue, setInputValue] = useState("");
 
-  const transport = useMemo(
-    () => new DefaultChatTransport({ api: "/api/ai/chat" }),
-    []
-  );
+  const transport = useMemo(() => new DefaultChatTransport({ api: "/api/ai/chat" }), []);
 
   const { messages, sendMessage, status } = useChat({
     transport,
@@ -70,21 +67,20 @@ export function AIChat() {
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
+                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
                     className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                      message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
                     }`}
                   >
                     <div className="whitespace-pre-wrap text-sm">
                       {message.parts?.map((part, i) => {
                         if (part.type === "text") {
-                          return <span key={i}>{part.text}</span>;
+                          return (
+                            // biome-ignore lint/suspicious/noArrayIndexKey: message parts have no stable ID
+                            <span key={i}>{part.text}</span>
+                          );
                         }
                         return null;
                       })}

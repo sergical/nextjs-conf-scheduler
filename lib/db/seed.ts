@@ -1,12 +1,12 @@
-import { drizzle } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
-import { speakers, tracks, rooms, talks } from "./schema";
 import * as dotenv from "dotenv";
+import { drizzle } from "drizzle-orm/libsql";
+import { rooms, speakers, talks, tracks } from "./schema";
 
 dotenv.config({ path: ".env.local" });
 
 const client = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
+  url: process.env.TURSO_DATABASE_URL ?? "",
   authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
@@ -14,11 +14,36 @@ const db = drizzle(client);
 
 // Seed data - based on Next.js Conf 2025
 const seedTracks = [
-  { id: "ai", name: "AI & Agents", color: "#8b5cf6", description: "Build intelligent applications with AI agents and machine learning" },
-  { id: "perf", name: "Performance", color: "#ef4444", description: "Optimize your applications for speed and efficiency" },
-  { id: "fullstack", name: "Full Stack", color: "#3b82f6", description: "End-to-end application development patterns" },
-  { id: "dx", name: "Developer Experience", color: "#22c55e", description: "Tools and patterns for better developer productivity" },
-  { id: "platform", name: "Platform", color: "#06b6d4", description: "Infrastructure, deployment, and platform features" },
+  {
+    id: "ai",
+    name: "AI & Agents",
+    color: "#8b5cf6",
+    description: "Build intelligent applications with AI agents and machine learning",
+  },
+  {
+    id: "perf",
+    name: "Performance",
+    color: "#ef4444",
+    description: "Optimize your applications for speed and efficiency",
+  },
+  {
+    id: "fullstack",
+    name: "Full Stack",
+    color: "#3b82f6",
+    description: "End-to-end application development patterns",
+  },
+  {
+    id: "dx",
+    name: "Developer Experience",
+    color: "#22c55e",
+    description: "Tools and patterns for better developer productivity",
+  },
+  {
+    id: "platform",
+    name: "Platform",
+    color: "#06b6d4",
+    description: "Infrastructure, deployment, and platform features",
+  },
 ];
 
 const seedRooms = [
@@ -229,7 +254,8 @@ const seedTalks = [
   {
     id: "coding-future",
     title: "Coding for the Future",
-    description: "A panel discussion on how AI is transforming the way we write code. Featuring perspectives from Vercel, OpenAI, FactoryAI, and Latent.Space on the future of software development.",
+    description:
+      "A panel discussion on how AI is transforming the way we write code. Featuring perspectives from Vercel, OpenAI, FactoryAI, and Latent.Space on the future of software development.",
     speakerId: "swyx",
     trackId: "ai",
     roomId: "main",
@@ -241,7 +267,8 @@ const seedTalks = [
   {
     id: "composition-caching",
     title: "Composition, Caching, and Architecture in Modern Next.js",
-    description: "Deep dive into composition patterns, caching strategies, and architectural decisions for building scalable Next.js applications. Learn how to structure your app for maintainability and performance.",
+    description:
+      "Deep dive into composition patterns, caching strategies, and architectural decisions for building scalable Next.js applications. Learn how to structure your app for maintainability and performance.",
     speakerId: "aurora",
     trackId: "fullstack",
     roomId: "main",
@@ -253,7 +280,8 @@ const seedTalks = [
   {
     id: "nextjs-ai-agents",
     title: "Next.js for AI Agents",
-    description: "Learn how to build AI agents with Next.js and the Vercel AI SDK. Cover tool calling, streaming responses, and building production-ready AI applications.",
+    description:
+      "Learn how to build AI agents with Next.js and the Vercel AI SDK. Cover tool calling, streaming responses, and building production-ready AI applications.",
     speakerId: "jude",
     trackId: "ai",
     roomId: "main",
@@ -265,7 +293,8 @@ const seedTalks = [
   {
     id: "clankers-content",
     title: "Clankers and Content Operations",
-    description: "Explore content operations and how modern headless CMS solutions integrate with Next.js. Build scalable content-driven applications with Sanity.",
+    description:
+      "Explore content operations and how modern headless CMS solutions integrate with Next.js. Build scalable content-driven applications with Sanity.",
     speakerId: "simeon",
     trackId: "fullstack",
     roomId: "main",
@@ -277,7 +306,8 @@ const seedTalks = [
   {
     id: "course-platform",
     title: "Build. Scale. Teach: Architecting a Production-Ready Course Platform",
-    description: "Learn how to architect and scale a modern course platform with Next.js. Covers authentication, payments, video streaming, and content delivery at scale.",
+    description:
+      "Learn how to architect and scale a modern course platform with Next.js. Covers authentication, payments, video streaming, and content delivery at scale.",
     speakerId: "ankita",
     trackId: "fullstack",
     roomId: "main",
@@ -289,7 +319,8 @@ const seedTalks = [
   {
     id: "reactive-state",
     title: "Reactive State for the Backend",
-    description: "Explore reactive state management patterns for backend services. Learn how to build real-time, event-driven architectures with Next.js.",
+    description:
+      "Explore reactive state management patterns for backend services. Learn how to build real-time, event-driven architectures with Next.js.",
     speakerId: "rhys",
     trackId: "platform",
     roomId: "main",
@@ -302,7 +333,8 @@ const seedTalks = [
   {
     id: "ambient-agents",
     title: "Ambient Agents on Next.js: Seven Levers for Token Efficiency",
-    description: "Master token efficiency when building AI agents. Learn seven key strategies to reduce costs and improve performance of your AI-powered Next.js applications.",
+    description:
+      "Master token efficiency when building AI agents. Learn seven key strategies to reduce costs and improve performance of your AI-powered Next.js applications.",
     speakerId: "fred",
     trackId: "ai",
     roomId: "main",
@@ -314,7 +346,8 @@ const seedTalks = [
   {
     id: "integrated-ai",
     title: "Fully Integrated AI that Actually Ships",
-    description: "Learn how to ship AI features that work in production. Cover error handling, fallbacks, monitoring, and integration patterns for reliable AI applications.",
+    description:
+      "Learn how to ship AI features that work in production. Cover error handling, fallbacks, monitoring, and integration patterns for reliable AI applications.",
     speakerId: "ryan",
     trackId: "ai",
     roomId: "main",
@@ -326,7 +359,8 @@ const seedTalks = [
   {
     id: "dx-ai-age",
     title: "Developer Experience in the Age of AI",
-    description: "How AI is changing developer experience and what it means for tools, authentication, and the future of building applications.",
+    description:
+      "How AI is changing developer experience and what it means for tools, authentication, and the future of building applications.",
     speakerId: "bryce",
     trackId: "dx",
     roomId: "main",
@@ -338,7 +372,8 @@ const seedTalks = [
   {
     id: "turbo-yet",
     title: "Are We Turbo Yet?",
-    description: "The state of Turbopack and the future of JavaScript bundling. Learn about the latest improvements, performance gains, and what's coming next.",
+    description:
+      "The state of Turbopack and the future of JavaScript bundling. Learn about the latest improvements, performance gains, and what's coming next.",
     speakerId: "luke",
     trackId: "perf",
     roomId: "main",
@@ -350,7 +385,8 @@ const seedTalks = [
   {
     id: "type-safe-url",
     title: "Type-safe URL State in Next.js with nuqs",
-    description: "Master URL state management with nuqs. Learn how to build type-safe, shareable URL state that works with React Server Components and the App Router.",
+    description:
+      "Master URL state management with nuqs. Learn how to build type-safe, shareable URL state that works with React Server Components and the App Router.",
     speakerId: "francois",
     trackId: "dx",
     roomId: "main",
@@ -362,7 +398,8 @@ const seedTalks = [
   {
     id: "consent-banner",
     title: "Why Your Consent Banner Should Be in Your Bundle",
-    description: "Rethink privacy compliance for modern web apps. Learn why consent management belongs in your application bundle and how to implement it properly.",
+    description:
+      "Rethink privacy compliance for modern web apps. Learn why consent management belongs in your application bundle and how to implement it properly.",
     speakerId: "christopher",
     trackId: "platform",
     roomId: "main",
@@ -374,7 +411,8 @@ const seedTalks = [
   {
     id: "bun-speed",
     title: "Next.js at the Speed of Bun",
-    description: "Explore how Bun can supercharge your Next.js development experience. Faster installs, faster builds, and a better developer experience.",
+    description:
+      "Explore how Bun can supercharge your Next.js development experience. Faster installs, faster builds, and a better developer experience.",
     speakerId: "lydia",
     trackId: "perf",
     roomId: "main",
@@ -386,7 +424,8 @@ const seedTalks = [
   {
     id: "open-web",
     title: "The Open Web",
-    description: "A panel featuring the creators of Next.js, Svelte, and Nuxt discussing the future of the open web, framework collaboration, and web standards.",
+    description:
+      "A panel featuring the creators of Next.js, Svelte, and Nuxt discussing the future of the open web, framework collaboration, and web standards.",
     speakerId: "tim",
     trackId: "platform",
     roomId: "main",
@@ -411,7 +450,8 @@ const seedTalks = [
   {
     id: "aws-ai-workshop",
     title: "Building Full Stack AI Applications with Vercel and AWS",
-    description: "Hands-on workshop building AI applications that combine Vercel's frontend platform with AWS backend services. Learn integration patterns and best practices.",
+    description:
+      "Hands-on workshop building AI applications that combine Vercel's frontend platform with AWS backend services. Learn integration patterns and best practices.",
     speakerId: "james",
     trackId: "ai",
     roomId: "workshop",
@@ -423,7 +463,8 @@ const seedTalks = [
   {
     id: "nextjs16-migration",
     title: "Hands On: How to Migrate to Next.js 16 and 'use cache'",
-    description: "Step-by-step workshop on migrating your application to Next.js 16. Learn the new caching APIs, 'use cache' directive, and migration strategies.",
+    description:
+      "Step-by-step workshop on migrating your application to Next.js 16. Learn the new caching APIs, 'use cache' directive, and migration strategies.",
     speakerId: "goncy",
     trackId: "fullstack",
     roomId: "workshop",

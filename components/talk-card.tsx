@@ -1,7 +1,7 @@
-import Link from "next/link";
 import Image from "next/image";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type TalkCardProps = {
   talk: {
@@ -91,9 +91,7 @@ export function TalkCard({ talk, showTime = true }: TalkCardProps) {
             </div>
           )}
 
-          <p className="text-muted-foreground line-clamp-2 text-xs">
-            {talk.description}
-          </p>
+          <p className="text-muted-foreground line-clamp-2 text-xs">{talk.description}</p>
 
           <div className="flex items-center gap-2">
             <Image
@@ -105,9 +103,7 @@ export function TalkCard({ talk, showTime = true }: TalkCardProps) {
             />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium truncate">{talk.speaker.name}</p>
-              <p className="text-xs text-muted-foreground truncate">
-                {talk.speaker.company}
-              </p>
+              <p className="text-xs text-muted-foreground truncate">{talk.speaker.company}</p>
             </div>
           </div>
 
@@ -115,10 +111,7 @@ export function TalkCard({ talk, showTime = true }: TalkCardProps) {
             <Badge variant="outline" className="text-[10px]">
               {talk.track.name}
             </Badge>
-            <Badge
-              variant="secondary"
-              className={`text-[10px] ${levelColors[talk.level]}`}
-            >
+            <Badge variant="secondary" className={`text-[10px] ${levelColors[talk.level]}`}>
               {talk.level}
             </Badge>
           </div>

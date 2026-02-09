@@ -1,11 +1,11 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
-import { trpc } from "@/lib/trpc/server";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Header } from "@/components/header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { verifySession } from "@/lib/auth/dal";
+import { trpc } from "@/lib/trpc/server";
 import { AddToScheduleButton } from "./add-to-schedule-button";
 
 type Params = Promise<{ id: string }>;
@@ -34,7 +34,9 @@ function formatDuration(start: number, end: number): string {
   if (minutes >= 60) {
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours} hour${hours > 1 ? "s" : ""}`;
+    return remainingMinutes > 0
+      ? `${hours}h ${remainingMinutes}m`
+      : `${hours} hour${hours > 1 ? "s" : ""}`;
   }
   return `${minutes} minutes`;
 }
@@ -84,10 +86,7 @@ export default async function TalkDetailPage({ params }: { params: Params }) {
           <div className="lg:col-span-2 space-y-6">
             {/* Track badge */}
             <div className="flex items-center gap-2">
-              <div
-                className="h-3 w-3 rounded-full"
-                style={{ backgroundColor: talk.track.color }}
-              />
+              <div className="h-3 w-3 rounded-full" style={{ backgroundColor: talk.track.color }} />
               <span className="text-sm font-medium">{talk.track.name}</span>
             </div>
 
@@ -97,28 +96,21 @@ export default async function TalkDetailPage({ params }: { params: Params }) {
             {/* Meta badges */}
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline">{formatLabels[talk.format]}</Badge>
-              <Badge
-                variant="secondary"
-                className={levelColors[talk.level]}
-              >
+              <Badge variant="secondary" className={levelColors[talk.level]}>
                 {talk.level.charAt(0).toUpperCase() + talk.level.slice(1)}
               </Badge>
             </div>
 
             {/* Description */}
             <div className="prose prose-sm dark:prose-invert max-w-none">
-              <p className="text-muted-foreground leading-relaxed">
-                {talk.description}
-              </p>
+              <p className="text-muted-foreground leading-relaxed">{talk.description}</p>
             </div>
 
             {/* Track info */}
             <Card>
               <CardContent className="pt-4">
                 <h3 className="font-medium mb-2">About the {talk.track.name} Track</h3>
-                <p className="text-sm text-muted-foreground">
-                  {talk.track.description}
-                </p>
+                <p className="text-sm text-muted-foreground">{talk.track.description}</p>
               </CardContent>
             </Card>
           </div>
@@ -147,10 +139,7 @@ export default async function TalkDetailPage({ params }: { params: Params }) {
                 </div>
 
                 {session.isAuth ? (
-                  <AddToScheduleButton
-                    talkId={talk.id}
-                    isInSchedule={isInSchedule}
-                  />
+                  <AddToScheduleButton talkId={talk.id} isInSchedule={isInSchedule} />
                 ) : (
                   <div className="pt-2">
                     <p className="text-sm text-muted-foreground">
@@ -183,16 +172,10 @@ export default async function TalkDetailPage({ params }: { params: Params }) {
                     <p className="font-medium group-hover:text-primary transition-colors">
                       {talk.speaker.name}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      {talk.speaker.role}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {talk.speaker.company}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{talk.speaker.role}</p>
+                    <p className="text-sm text-muted-foreground">{talk.speaker.company}</p>
                     {talk.speaker.twitter && (
-                      <p className="text-sm text-primary mt-1">
-                        @{talk.speaker.twitter}
-                      </p>
+                      <p className="text-sm text-primary mt-1">@{talk.speaker.twitter}</p>
                     )}
                   </div>
                 </Link>

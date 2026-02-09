@@ -5,11 +5,11 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function Error({
+export default function ErrorPage({
   error,
   reset,
 }: {
-  error: Error & { digest?: string };
+  error: globalThis.Error & { digest?: string };
   reset: () => void;
 }) {
   useEffect(() => {
@@ -27,13 +27,16 @@ export default function Error({
             An unexpected error occurred. Our team has been notified and is looking into it.
           </p>
           {error.digest && (
-            <p className="text-sm text-muted-foreground font-mono">
-              Error ID: {error.digest}
-            </p>
+            <p className="text-sm text-muted-foreground font-mono">Error ID: {error.digest}</p>
           )}
           <div className="flex gap-2">
             <Button onClick={reset}>Try again</Button>
-            <Button variant="outline" onClick={() => window.location.href = "/"}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                window.location.href = "/";
+              }}
+            >
               Go home
             </Button>
           </div>

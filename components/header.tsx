@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { verifySession } from "@/lib/auth/dal";
+import { Button } from "@/components/ui/button";
 import { logout } from "@/lib/actions/auth";
+import { verifySession } from "@/lib/auth/dal";
 
 export async function Header() {
   const session = await verifySession();

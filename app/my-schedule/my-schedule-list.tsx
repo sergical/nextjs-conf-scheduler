@@ -1,11 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
-import Link from "next/link";
 import Image from "next/image";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { removeFromSchedule } from "@/lib/actions/schedule";
 
 type Talk = {
@@ -96,9 +96,7 @@ function TalkItem({
   isRemoving: boolean;
 }) {
   return (
-    <Card
-      className={hasConflict ? "ring-2 ring-destructive/50" : ""}
-    >
+    <Card className={hasConflict ? "ring-2 ring-destructive/50" : ""}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -107,9 +105,7 @@ function TalkItem({
               style={{ backgroundColor: talk.track.color }}
             />
             <Link href={`/talks/${talk.id}`}>
-              <CardTitle className="hover:text-primary transition-colors">
-                {talk.title}
-              </CardTitle>
+              <CardTitle className="hover:text-primary transition-colors">{talk.title}</CardTitle>
             </Link>
           </div>
           <Button
@@ -138,9 +134,7 @@ function TalkItem({
           <span>{talk.room.name}</span>
         </div>
 
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-          {talk.description}
-        </p>
+        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{talk.description}</p>
 
         <div className="flex items-center gap-3 mb-3">
           <Link href={`/speakers/${talk.speaker.id}`} className="flex items-center gap-2 group">
@@ -155,9 +149,7 @@ function TalkItem({
               {talk.speaker.name}
             </span>
           </Link>
-          <span className="text-sm text-muted-foreground">
-            {talk.speaker.company}
-          </span>
+          <span className="text-sm text-muted-foreground">{talk.speaker.company}</span>
         </div>
 
         <div className="flex flex-wrap gap-2">

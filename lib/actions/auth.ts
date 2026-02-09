@@ -1,14 +1,14 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { headers } from "next/headers";
-import { hash, compare } from "bcryptjs";
-import { z } from "zod";
 import * as Sentry from "@sentry/nextjs";
+import { compare, hash } from "bcryptjs";
+import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { createSession, deleteSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { createSession, deleteSession } from "@/lib/auth/session";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -26,13 +26,10 @@ export type AuthState = {
   fieldErrors?: Record<string, string[]>;
 };
 
-export async function signup(
-  _prevState: AuthState,
-  formData: FormData
-): Promise<AuthState> {
+export async function signup(_prevState: AuthState, formData: FormData): Promise<AuthState> {
   const startTime = Date.now();
 
-  return Sentry.withServerActionInstrumentation(
+  const result = await Sentry.withServerActionInstrumentation(
     "auth.signup",
     { headers: await headers() },
     async () => {
@@ -58,11 +55,7 @@ export async function signup(
       const { name, email, password } = validated.data;
 
       // Check if user already exists
-      const existingUser = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, email))
-        .limit(1);
+      const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
       if (existingUser.length > 0) {
         Sentry.logger.info("Signup attempted with existing email", {
@@ -94,18 +87,21 @@ export async function signup(
         duration_ms: Date.now() - startTime,
       });
 
-      redirect("/");
-    }
+      return {};
+    },
   );
+
+  if (result.error || result.fieldErrors) {
+    return result;
+  }
+
+  redirect("/");
 }
 
-export async function login(
-  _prevState: AuthState,
-  formData: FormData
-): Promise<AuthState> {
+export async function login(_prevState: AuthState, formData: FormData): Promise<AuthState> {
   const startTime = Date.now();
 
-  return Sentry.withServerActionInstrumentation(
+  const result = await Sentry.withServerActionInstrumentation(
     "auth.login",
     { headers: await headers() },
     async () => {
@@ -129,13 +125,9 @@ export async function login(
       const { email, password } = validated.data;
 
       // Find user
-      const result = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, email))
-        .limit(1);
+      const found = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
-      const user = result[0];
+      const user = found[0];
 
       if (!user) {
         Sentry.logger.info("Login failed - user not found", {
@@ -168,15 +160,21 @@ export async function login(
         duration_ms: Date.now() - startTime,
       });
 
-      redirect("/");
-    }
+      return {};
+    },
   );
+
+  if (result.error || result.fieldErrors) {
+    return result;
+  }
+
+  redirect("/");
 }
 
 export async function logout() {
   const startTime = Date.now();
 
-  return Sentry.withServerActionInstrumentation(
+  await Sentry.withServerActionInstrumentation(
     "auth.logout",
     { headers: await headers() },
     async () => {
@@ -186,8 +184,8 @@ export async function logout() {
         action: "auth.logout",
         duration_ms: Date.now() - startTime,
       });
-
-      redirect("/login");
-    }
+    },
   );
+
+  redirect("/login");
 }

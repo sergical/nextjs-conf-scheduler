@@ -9,10 +9,7 @@ type AddToScheduleButtonProps = {
   isInSchedule: boolean;
 };
 
-export function AddToScheduleButton({
-  talkId,
-  isInSchedule,
-}: AddToScheduleButtonProps) {
+export function AddToScheduleButton({ talkId, isInSchedule }: AddToScheduleButtonProps) {
   const [isPending, startTransition] = useTransition();
 
   const handleClick = () => {
@@ -32,11 +29,7 @@ export function AddToScheduleButton({
       variant={isInSchedule ? "outline" : "default"}
       className="w-full"
     >
-      {isPending
-        ? "Updating..."
-        : isInSchedule
-          ? "Remove from My Schedule"
-          : "Add to My Schedule"}
+      {isPending ? "Updating..." : isInSchedule ? "Remove from My Schedule" : "Add to My Schedule"}
     </Button>
   );
 }

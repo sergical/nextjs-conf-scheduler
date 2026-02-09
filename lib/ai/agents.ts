@@ -1,14 +1,7 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { generateText, streamText, tool } from "ai";
 import * as Sentry from "@sentry/nextjs";
-import { z } from "zod";
-import {
-  searchTalks,
-  getTracks,
-  getTalkDetails,
-  checkConflicts,
-  getUserSchedule,
-} from "./tools";
+import { generateText, streamText } from "ai";
+import { checkConflicts, getTalkDetails, getTracks, getUserSchedule, searchTalks } from "./tools";
 
 // Agent definitions with their specialized roles
 export const AGENTS = {
@@ -84,9 +77,7 @@ Available tracks:
 Use the tools to fetch the requested information and present it clearly.`;
 
 // Route the request to the appropriate agent
-export async function routeRequest(
-  userMessage: string
-): Promise<AgentType> {
+export async function routeRequest(userMessage: string): Promise<AgentType> {
   return Sentry.startSpan(
     {
       name: "ai.agent.router",
@@ -111,12 +102,12 @@ export async function routeRequest(
       });
 
       return agent === "info" ? "info" : "search";
-    }
+    },
   );
 }
 
 // Get tools for the search agent
-function getSearchTools(userId: string) {
+function getSearchTools(_userId: string) {
   return {
     searchTalks,
     getTalkDetails,
@@ -135,7 +126,7 @@ function getInfoTools(userId: string) {
 // Execute the search agent
 export async function executeSearchAgent(
   messages: Array<{ role: "user" | "assistant"; content: string }>,
-  userId: string
+  userId: string,
 ) {
   return Sentry.startSpan(
     {
@@ -155,14 +146,14 @@ export async function executeSearchAgent(
       });
 
       return result;
-    }
+    },
   );
 }
 
 // Execute the info agent
 export async function executeInfoAgent(
   messages: Array<{ role: "user" | "assistant"; content: string }>,
-  userId: string
+  userId: string,
 ) {
   return Sentry.startSpan(
     {
@@ -182,14 +173,14 @@ export async function executeInfoAgent(
       });
 
       return result;
-    }
+    },
   );
 }
 
 // Main orchestrator that handles the full pipeline
 export async function runAgentPipeline(
   messages: Array<{ role: "user" | "assistant"; content: string }>,
-  userId: string
+  userId: string,
 ) {
   const lastUserMessage = messages.filter((m) => m.role === "user").pop();
 

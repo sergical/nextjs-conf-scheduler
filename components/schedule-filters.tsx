@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 
 type Track = {
@@ -38,14 +38,14 @@ export function ScheduleFilters({ tracks }: ScheduleFiltersProps) {
   const updateFilter = useCallback(
     (key: string, value: string | null) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (value === null || (params.get(key) === value)) {
+      if (value === null || params.get(key) === value) {
         params.delete(key);
       } else {
         params.set(key, value);
       }
       router.push(`?${params.toString()}`, { scroll: false });
     },
-    [router, searchParams]
+    [router, searchParams],
   );
 
   const clearFilters = useCallback(() => {
@@ -67,10 +67,7 @@ export function ScheduleFilters({ tracks }: ScheduleFiltersProps) {
             onClick={() => updateFilter("track", track.id)}
             className="gap-1.5"
           >
-            <span
-              className="h-2 w-2 rounded-full"
-              style={{ backgroundColor: track.color }}
-            />
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: track.color }} />
             {track.name}
           </Button>
         ))}

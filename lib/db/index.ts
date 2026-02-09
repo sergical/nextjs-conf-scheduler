@@ -1,5 +1,5 @@
-import { drizzle, LibSQLDatabase } from "drizzle-orm/libsql";
-import { createClient, Client } from "@libsql/client";
+import { type Client, createClient } from "@libsql/client";
+import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "./schema";
 
 let _client: Client | null = null;

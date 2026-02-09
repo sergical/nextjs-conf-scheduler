@@ -1,8 +1,8 @@
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { router, protectedProcedure } from "../init";
 import { db } from "@/lib/db";
-import { userSchedules, talks, speakers, tracks, rooms } from "@/lib/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { rooms, speakers, talks, tracks, userSchedules } from "@/lib/db/schema";
+import { protectedProcedure, router } from "../init";
 
 export const scheduleRouter = router({
   // Get user's saved schedule
@@ -89,10 +89,7 @@ export const scheduleRouter = router({
         .select()
         .from(userSchedules)
         .where(
-          and(
-            eq(userSchedules.userId, ctx.session.userId),
-            eq(userSchedules.talkId, input.talkId)
-          )
+          and(eq(userSchedules.userId, ctx.session.userId), eq(userSchedules.talkId, input.talkId)),
         )
         .limit(1);
 

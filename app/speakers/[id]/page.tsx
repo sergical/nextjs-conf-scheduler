@@ -1,10 +1,10 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
-import { trpc } from "@/lib/trpc/server";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Header } from "@/components/header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { trpc } from "@/lib/trpc/server";
 
 type Params = Promise<{ id: string }>;
 
@@ -70,18 +70,14 @@ export default async function SpeakerDetailPage({ params }: { params: Params }) 
                     @{speaker.twitter}
                   </a>
                 )}
-                <p className="text-sm text-muted-foreground mt-4 text-left">
-                  {speaker.bio}
-                </p>
+                <p className="text-sm text-muted-foreground mt-4 text-left">{speaker.bio}</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Speaker talks */}
           <div className="lg:col-span-2">
-            <h2 className="text-xl font-semibold mb-4">
-              Sessions ({speaker.talks.length})
-            </h2>
+            <h2 className="text-xl font-semibold mb-4">Sessions ({speaker.talks.length})</h2>
             <div className="space-y-4">
               {speaker.talks.map((talk) => (
                 <Link key={talk.id} href={`/talks/${talk.id}`}>
@@ -107,10 +103,7 @@ export default async function SpeakerDetailPage({ params }: { params: Params }) 
                       </p>
                       <div className="flex flex-wrap gap-2">
                         <Badge variant="outline">{talk.track.name}</Badge>
-                        <Badge
-                          variant="secondary"
-                          className={levelColors[talk.level]}
-                        >
+                        <Badge variant="secondary" className={levelColors[talk.level]}>
                           {talk.level}
                         </Badge>
                         <Badge variant="outline">{talk.format}</Badge>

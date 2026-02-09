@@ -1,7 +1,7 @@
-import { createUIMessageStreamResponse } from "ai";
 import * as Sentry from "@sentry/nextjs";
-import { requireAuth } from "@/lib/auth/dal";
+import { createUIMessageStreamResponse } from "ai";
 import { runAgentPipeline } from "@/lib/ai/agents";
+import { requireAuth } from "@/lib/auth/dal";
 
 export async function POST(req: Request) {
   const startTime = Date.now();
@@ -21,10 +21,7 @@ export async function POST(req: Request) {
     async () => {
       // Convert messages to the format expected by the agent pipeline
       const formattedMessages = messages.map(
-        (m: {
-          role: string;
-          content: string | Array<{ type: string; text?: string }>;
-        }) => ({
+        (m: { role: string; content: string | Array<{ type: string; text?: string }> }) => ({
           role: m.role as "user" | "assistant",
           content:
             typeof m.content === "string"
@@ -33,7 +30,7 @@ export async function POST(req: Request) {
                   .filter((p) => p.type === "text")
                   .map((p) => p.text || "")
                   .join(""),
-        })
+        }),
       );
 
       const result = await runAgentPipeline(formattedMessages, userId);
@@ -49,6 +46,6 @@ export async function POST(req: Request) {
       return createUIMessageStreamResponse({
         stream: result.toUIMessageStream(),
       });
-    }
+    },
   );
 }

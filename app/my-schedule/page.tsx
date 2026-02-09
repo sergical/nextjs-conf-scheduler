@@ -1,6 +1,6 @@
-import { trpc } from "@/lib/trpc/server";
 import { Header } from "@/components/header";
 import { requireAuth } from "@/lib/auth/dal";
+import { trpc } from "@/lib/trpc/server";
 import { MyScheduleList } from "./my-schedule-list";
 
 export default async function MySchedulePage() {

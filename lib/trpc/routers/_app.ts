@@ -1,7 +1,7 @@
 import { router } from "../init";
-import { talksRouter } from "./talks";
-import { speakersRouter } from "./speakers";
 import { scheduleRouter } from "./schedule";
+import { speakersRouter } from "./speakers";
+import { talksRouter } from "./talks";
 
 export const appRouter = router({
   talks: talksRouter,

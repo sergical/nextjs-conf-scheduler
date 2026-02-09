@@ -7,6 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 pnpm dev          # Start dev server (Turbopack)
 pnpm build        # Production build
+pnpm lint         # Run Biome linter + formatter check
+pnpm format       # Auto-format with Biome
 pnpm db:init      # Create Turso DB & write credentials to .env.local
 pnpm db:push      # Apply Drizzle schema to database
 pnpm db:seed      # Seed conference data

@@ -70,7 +70,7 @@
   --chart-2: oklch(0.72 0.18 306);
   --chart-3: oklch(0.63 0.23 304);
   --chart-4: oklch(0.56 0.25 302);
-  --chart-5: oklch(0.50 0.24 302);
+  --chart-5: oklch(0.5 0.24 302);
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -105,7 +105,7 @@
   --chart-2: oklch(0.72 0.18 306);
   --chart-3: oklch(0.63 0.23 304);
   --chart-4: oklch(0.56 0.25 302);
-  --chart-5: oklch(0.50 0.24 302);
+  --chart-5: oklch(0.5 0.24 302);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.72 0.18 306);
@@ -129,12 +129,18 @@
     padding-inline: 1rem;
   }
   @media (min-width: 640px) {
-    .container { padding-inline: 1.5rem; }
+    .container {
+      padding-inline: 1.5rem;
+    }
   }
   @media (min-width: 1024px) {
-    .container { padding-inline: 2rem; }
+    .container {
+      padding-inline: 2rem;
+    }
   }
   @media (min-width: 1400px) {
-    .container { max-width: 1400px; }
+    .container {
+      max-width: 1400px;
+    }
   }
 }

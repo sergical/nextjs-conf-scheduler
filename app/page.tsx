@@ -1,9 +1,9 @@
 import { Suspense } from "react";
-import { trpc } from "@/lib/trpc/server";
 import { Header } from "@/components/header";
-import { ScheduleGrid } from "@/components/schedule-grid";
 import { ScheduleFilters } from "@/components/schedule-filters";
+import { ScheduleGrid } from "@/components/schedule-grid";
 import { Skeleton } from "@/components/ui/skeleton";
+import { trpc } from "@/lib/trpc/server";
 
 type SearchParams = Promise<{
   track?: string;
@@ -11,19 +11,12 @@ type SearchParams = Promise<{
   format?: string;
 }>;
 
-export default async function SchedulePage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
+export default async function SchedulePage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const api = await trpc();
 
   // Fetch all talks and tracks
-  const [allTalks, tracks] = await Promise.all([
-    api.talks.list(),
-    api.talks.tracks(),
-  ]);
+  const [allTalks, tracks] = await Promise.all([api.talks.list(), api.talks.tracks()]);
 
   let filteredTalks = allTalks;
 
@@ -43,16 +36,20 @@ export default async function SchedulePage({
       <Header />
       <main className="container py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight mb-2">
-            Conference Schedule
-          </h1>
-          <p className="text-muted-foreground">
-            October 22, 2025 · San Francisco, CA
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Conference Schedule</h1>
+          <p className="text-muted-foreground">October 22, 2025 · San Francisco, CA</p>
         </div>
 
         <div className="mb-8">
-          <Suspense fallback={<div className="flex gap-2"><Skeleton className="h-9 w-24" /><Skeleton className="h-9 w-24" /><Skeleton className="h-9 w-24" /></div>}>
+          <Suspense
+            fallback={
+              <div className="flex gap-2">
+                <Skeleton className="h-9 w-24" />
+                <Skeleton className="h-9 w-24" />
+                <Skeleton className="h-9 w-24" />
+              </div>
+            }
+          >
             <ScheduleFilters tracks={tracks} />
           </Suspense>
         </div>

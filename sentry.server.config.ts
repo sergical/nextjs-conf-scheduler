@@ -21,8 +21,5 @@ Sentry.init({
   sendDefaultPii: true,
 
   // Add integrations for database and AI tracing
-  integrations: [
-    libsqlIntegration(libsqlClient, Sentry),
-    vercelAIIntegration(),
-  ],
+  integrations: [libsqlIntegration(libsqlClient, Sentry), vercelAIIntegration()],
 });

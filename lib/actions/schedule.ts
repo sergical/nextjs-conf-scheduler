@@ -1,12 +1,12 @@
 "use server";
 
+import * as Sentry from "@sentry/nextjs";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import * as Sentry from "@sentry/nextjs";
+import { requireAuth } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { userSchedules } from "@/lib/db/schema";
-import { requireAuth } from "@/lib/auth/dal";
-import { and, eq } from "drizzle-orm";
 
 export async function addToSchedule(talkId: string) {
   const startTime = Date.now();
@@ -54,7 +54,7 @@ export async function addToSchedule(talkId: string) {
       });
 
       return { success: true };
-    }
+    },
   );
 }
 
@@ -84,6 +84,6 @@ export async function removeFromSchedule(talkId: string) {
       });
 
       return { success: true };
-    }
+    },
   );
 }

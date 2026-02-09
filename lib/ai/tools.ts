@@ -1,9 +1,9 @@
-import { tool } from "ai";
-import { z } from "zod";
 import * as Sentry from "@sentry/nextjs";
+import { tool } from "ai";
+import { and, eq, inArray, like, or } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/lib/db";
-import { talks, speakers, tracks, rooms, userSchedules } from "@/lib/db/schema";
-import { eq, like, and, or, inArray } from "drizzle-orm";
+import { rooms, speakers, talks, tracks, userSchedules } from "@/lib/db/schema";
 
 // Tool: Search talks by topic, speaker, or keywords
 export const searchTalks = tool({
@@ -36,10 +36,7 @@ export const searchTalks = tool({
         // Search in title and description
         if (query) {
           conditions.push(
-            or(
-              like(talks.title, `%${query}%`),
-              like(talks.description, `%${query}%`)
-            )
+            or(like(talks.title, `%${query}%`), like(talks.description, `%${query}%`)),
           );
         }
         if (trackId) {
@@ -88,7 +85,7 @@ export const searchTalks = tool({
 
         span.setAttribute("gen_ai.tool.output_count", output.length);
         return output;
-      }
+      },
     );
   },
 });
@@ -107,15 +104,14 @@ export const getTracks = tool({
 
         span.setAttribute("gen_ai.tool.output_count", result.length);
         return result;
-      }
+      },
     );
   },
 });
 
 // Tool: Get full details of a specific talk
 export const getTalkDetails = tool({
-  description:
-    "Get complete details of a specific talk including speaker bio and track info.",
+  description: "Get complete details of a specific talk including speaker bio and track info.",
   inputSchema: z.object({
     talkId: z.string().describe("The ID of the talk to get details for"),
   }),
@@ -161,10 +157,10 @@ export const getTalkDetails = tool({
 
         const output = {
           ...result[0],
-          startTime: new Date(result[0].startTime * 1000).toLocaleTimeString(
-            "en-US",
-            { hour: "numeric", minute: "2-digit" }
-          ),
+          startTime: new Date(result[0].startTime * 1000).toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          }),
           endTime: new Date(result[0].endTime * 1000).toLocaleTimeString("en-US", {
             hour: "numeric",
             minute: "2-digit",
@@ -173,19 +169,16 @@ export const getTalkDetails = tool({
 
         span.setAttribute("gen_ai.tool.found", true);
         return output;
-      }
+      },
     );
   },
 });
 
 // Tool: Check for time conflicts between talks
 export const checkConflicts = tool({
-  description:
-    "Check if a list of talks have any time conflicts (overlapping schedules).",
+  description: "Check if a list of talks have any time conflicts (overlapping schedules).",
   inputSchema: z.object({
-    talkIds: z
-      .array(z.string())
-      .describe("Array of talk IDs to check for conflicts"),
+    talkIds: z.array(z.string()).describe("Array of talk IDs to check for conflicts"),
   }),
   execute: async ({ talkIds }) => {
     return Sentry.startSpan(
@@ -240,7 +233,7 @@ export const checkConflicts = tool({
               ? `Found ${conflicts.length} conflict(s) between talks.`
               : "No conflicts found - all talks can be attended.",
         };
-      }
+      },
     );
   },
 });
@@ -287,7 +280,7 @@ export const getUserSchedule = (userId: string) =>
 
           span.setAttribute("gen_ai.tool.output_count", output.length);
           return output;
-        }
+        },
       );
     },
   });

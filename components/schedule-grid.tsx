@@ -75,9 +75,7 @@ export function ScheduleGrid({ talks }: ScheduleGridProps) {
   const sortedTimeSlots = Array.from(groupedTalks.keys()).sort((a, b) => a - b);
 
   // Determine if we need to show date headers (multiple days)
-  const dates = new Set(
-    talks.map((t) => new Date(t.startTime * 1000).toDateString())
-  );
+  const dates = new Set(talks.map((t) => new Date(t.startTime * 1000).toDateString()));
   const showDateHeaders = dates.size > 1;
   let currentDate = "";
 
@@ -96,9 +94,7 @@ export function ScheduleGrid({ talks }: ScheduleGridProps) {
           <div key={timeSlot}>
             {/* Date header when crossing days */}
             {showDateHeaders && isNewDate && (
-              <h2 className="text-lg font-semibold mb-4 pb-2 border-b">
-                {formatDate(timeSlot)}
-              </h2>
+              <h2 className="text-lg font-semibold mb-4 pb-2 border-b">{formatDate(timeSlot)}</h2>
             )}
 
             {/* Time slot header */}
