@@ -25,6 +25,11 @@ export async function addToSchedule(talkId: string) {
         .limit(1);
 
       if (existing.length > 0) {
+        Sentry.metrics.count("schedule_add_duplicate");
+        Sentry.metrics.distribution("schedule_operation_duration", Date.now() - startTime, {
+          unit: "millisecond",
+          attributes: { action: "add" },
+        });
         Sentry.logger.info("Schedule add attempted - already exists", {
           action: "schedule.addToSchedule",
           user_id: userId,
@@ -45,6 +50,11 @@ export async function addToSchedule(talkId: string) {
       revalidatePath("/my-schedule");
       revalidatePath(`/talks/${talkId}`);
 
+      Sentry.metrics.count("schedule_add_success");
+      Sentry.metrics.distribution("schedule_operation_duration", Date.now() - startTime, {
+        unit: "millisecond",
+        attributes: { action: "add" },
+      });
       Sentry.logger.info("Schedule item added", {
         action: "schedule.addToSchedule",
         user_id: userId,
@@ -75,6 +85,11 @@ export async function removeFromSchedule(talkId: string) {
       revalidatePath("/my-schedule");
       revalidatePath(`/talks/${talkId}`);
 
+      Sentry.metrics.count("schedule_remove_success");
+      Sentry.metrics.distribution("schedule_operation_duration", Date.now() - startTime, {
+        unit: "millisecond",
+        attributes: { action: "remove" },
+      });
       Sentry.logger.info("Schedule item removed", {
         action: "schedule.removeFromSchedule",
         user_id: userId,
