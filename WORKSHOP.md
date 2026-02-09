@@ -1,6 +1,6 @@
 # Debugging Next.js Workshop
 
-A progressive workshop for adding Sentry to a Next.js app. Each module builds on the previous, teaching one Sentry capability at a time.
+A progressive workshop for debugging Next.js with Sentry. The SDK is already configured — each module teaches one Sentry capability by adding it back to a branch where it's been removed.
 
 ## Prerequisites
 
@@ -27,6 +27,16 @@ pnpm db:seed    # Seeds conference data
 # Start dev server
 pnpm dev
 ```
+
+## Sentry Setup Walkthrough
+
+Sentry is already configured in this app. Before diving into the modules, take a look at what's in place:
+
+- **`next.config.ts`** — `withSentryConfig()` wraps the Next.js config, enabling source map uploads and a tunnel route (`/monitoring`) that bypasses ad-blockers
+- **`instrumentation.ts`** — Next.js instrumentation hook that loads `sentry.server.config.ts` (Node) or `sentry.edge.config.ts` (Edge) at startup, plus `onRequestError` for automatic server error capture
+- **`sentry.server.config.ts`** — `Sentry.init()` with DSN, 100% trace sampling, structured logs, and integrations for database and AI tracing
+
+This was set up with the Sentry wizard (`npx @sentry/wizard@latest -i nextjs`), which scaffolds all the config files automatically. The `main` branch has the fully wired-up version — each module branch strips out one capability so you can learn it hands-on.
 
 ## Workshop Structure
 

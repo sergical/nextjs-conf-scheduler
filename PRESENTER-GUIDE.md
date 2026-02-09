@@ -31,7 +31,7 @@ Run through this **30 minutes before** go-live:
 
 | Time | Duration | Section | Branch | Key Action |
 |------|----------|---------|--------|------------|
-| 0:00 | 5 min | Intro + App Tour | `main` | Show the running app, explain the stack |
+| 0:00 | 5 min | Intro + Sentry Setup Walkthrough | `main` | Walk through existing Sentry config, explain the stack |
 | 0:05 | 10 min | Module 1: Error Capture | `module-1-start` | Trigger hydration error, fix theme provider |
 | 0:15 | 10 min | Module 2: Tracing | `module-2-start` | Wrap server actions, show named traces |
 | 0:25 | 10 min | Module 3: Structured Logs | `module-3-start` | Enable logs, add wide events |
@@ -45,21 +45,25 @@ Run through this **30 minutes before** go-live:
 
 ## Per-Module Script
 
-### Intro + App Tour (0:00 — 0:05)
+### Intro + Sentry Setup Walkthrough (0:00 — 0:05)
 
 **Branch:** `main`
 
 **Demo flow:**
 1. Show the running app — browse talks, view a speaker page
-2. Click "Sign Up" → create an account → log in
-3. Add a talk to your schedule
-4. Open the AI Builder chat and ask a question
-5. "This app works great… but we have zero visibility. Let's fix that."
+2. "This is a Next.js 16 app with tRPC, Drizzle, Turso, and Vercel AI SDK"
+3. "Sentry is already configured — let me show you how"
+4. Open `next.config.ts` — show `withSentryConfig` wrapping the config (source maps, tunnel route)
+5. Open `instrumentation.ts` — show `register()` loading server/edge configs + `onRequestError`
+6. Open `sentry.server.config.ts` — show `Sentry.init()` with DSN, tracing, logs, integrations
+7. "This is the fully wired-up version. Each module starts with a gap — one capability removed — and you'll add it back"
 
 **Talking points:**
-- Next.js 16 app with tRPC, Drizzle, Turso, Vercel AI SDK
-- Sentry SDK is installed but not fully wired up — each module adds one capability
-- Each module has a starting branch with a specific gap
+- Sentry was added with `npx @sentry/wizard@latest -i nextjs` — the wizard sets up all config files
+- `withSentryConfig` handles source maps and the tunnel route (bypasses ad-blockers)
+- `instrumentation.ts` is the Next.js hook for initializing server-side code
+- `onRequestError` automatically captures server errors
+- Each module branch strips out one capability so you can learn it hands-on
 
 ---
 
@@ -227,7 +231,7 @@ pnpm dev
    - Performance: traces with named server actions + DB spans
    - Logs: structured wide events
    - AI Insights: LLM and tool monitoring
-2. "In 50 minutes we went from zero observability to full-stack visibility"
+2. "We started with the Sentry SDK configured, and in 50 minutes added error capture, tracing, logs, DB visibility, and AI monitoring"
 3. Share resources (link to `WORKSHOP.md` and Sentry docs)
 
 ---
