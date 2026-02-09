@@ -1,8 +1,6 @@
-import { Suspense } from "react";
 import { Header } from "@/components/header";
 import { ScheduleFilters } from "@/components/schedule-filters";
 import { ScheduleGrid } from "@/components/schedule-grid";
-import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc/server";
 
 type SearchParams = Promise<{
@@ -41,17 +39,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
         </div>
 
         <div className="mb-8">
-          <Suspense
-            fallback={
-              <div className="flex gap-2">
-                <Skeleton className="h-9 w-24" />
-                <Skeleton className="h-9 w-24" />
-                <Skeleton className="h-9 w-24" />
-              </div>
-            }
-          >
-            <ScheduleFilters tracks={tracks} />
-          </Suspense>
+          <ScheduleFilters tracks={tracks} />
         </div>
 
         <ScheduleGrid talks={filteredTalks} />

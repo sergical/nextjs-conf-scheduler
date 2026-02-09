@@ -1,13 +1,13 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import * as Sentry from "@sentry/nextjs";
-import { generateText, streamText } from "ai";
+import { generateText, stepCountIs, streamText } from "ai";
 import { checkConflicts, getTalkDetails, getTracks, getUserSchedule, searchTalks } from "./tools";
 
 // Agent definitions with their specialized roles
 export const AGENTS = {
   router: {
     name: "router",
-    model: anthropic("claude-haiku-4-5-20250929"),
+    model: anthropic("claude-haiku-4-5-20251001"),
     description: "Routes requests to specialized agents",
   },
   search: {
@@ -17,7 +17,7 @@ export const AGENTS = {
   },
   info: {
     name: "info-agent",
-    model: anthropic("claude-haiku-4-5-20250929"),
+    model: anthropic("claude-haiku-4-5-20251001"),
     description: "Handles simple info queries like tracks and schedule",
   },
 } as const;
@@ -56,10 +56,12 @@ Available tracks:
 - Platform (id: platform): Infrastructure, deployment, and platform features
 
 When helping users:
-1. Use searchTalks to find relevant sessions
-2. Use getTalkDetails for more information on specific talks
-3. Use checkConflicts before recommending multiple sessions
-4. Explain why you're recommending each talk
+1. Use searchTalks once or twice to find relevant sessions — use the trackId filter to narrow results instead of running many broad searches
+2. Use getTalkDetails only if the user asks about a specific talk
+3. ALWAYS use checkConflicts with the IDs of talks you plan to recommend — users need to know if sessions overlap
+4. After searching and checking conflicts, summarize your recommendations immediately — do not keep searching
+
+The tool results for searchTalks are rendered as interactive talk cards that users can add to their schedule. So after calling searchTalks, just explain your recommendations — the user can see and interact with the talk cards directly.
 
 Be concise but helpful.`;
 
@@ -84,7 +86,7 @@ export async function routeRequest(userMessage: string): Promise<AgentType> {
       op: "ai.pipeline",
       attributes: {
         "ai.pipeline.name": "router",
-        "ai.model.id": "claude-haiku-4-5-20250929",
+        "ai.model.id": "claude-haiku-4-5-20251001",
       },
     },
     async () => {
@@ -92,6 +94,7 @@ export async function routeRequest(userMessage: string): Promise<AgentType> {
         model: AGENTS.router.model,
         system: routerSystemPrompt,
         prompt: userMessage,
+        experimental_telemetry: { isEnabled: true },
       });
 
       const agent = text.trim().toLowerCase() as AgentType;
@@ -143,6 +146,8 @@ export async function executeSearchAgent(
         system: searchAgentSystemPrompt,
         messages,
         tools: getSearchTools(userId),
+        stopWhen: stepCountIs(10),
+        experimental_telemetry: { isEnabled: true },
       });
 
       return result;
@@ -161,7 +166,7 @@ export async function executeInfoAgent(
       op: "ai.pipeline",
       attributes: {
         "ai.pipeline.name": "info-agent",
-        "ai.model.id": "claude-haiku-4-5-20250929",
+        "ai.model.id": "claude-haiku-4-5-20251001",
       },
     },
     async () => {
@@ -170,6 +175,8 @@ export async function executeInfoAgent(
         system: infoAgentSystemPrompt,
         messages,
         tools: getInfoTools(userId),
+        stopWhen: stepCountIs(5),
+        experimental_telemetry: { isEnabled: true },
       });
 
       return result;
