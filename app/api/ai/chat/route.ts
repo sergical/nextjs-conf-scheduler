@@ -20,18 +20,20 @@ export async function POST(req: Request) {
     },
     async () => {
       // Convert messages to the format expected by the agent pipeline
-      const formattedMessages = messages.map(
-        (m: { role: string; content: string | Array<{ type: string; text?: string }> }) => ({
+      const formattedMessages = messages
+        .map((m: { role: string; content: string | Array<{ type: string; text?: string }> }) => ({
           role: m.role as "user" | "assistant",
           content:
             typeof m.content === "string"
               ? m.content
-              : (m.content as Array<{ type: string; text?: string }>)
-                  .filter((p) => p.type === "text")
-                  .map((p) => p.text || "")
-                  .join(""),
-        }),
-      );
+              : Array.isArray(m.content)
+                ? (m.content as Array<{ type: string; text?: string }>)
+                    .filter((p) => p.type === "text")
+                    .map((p) => p.text || "")
+                    .join("")
+                : "",
+        }))
+        .filter((m: { content: string }) => m.content.length > 0);
 
       const result = await runAgentPipeline(formattedMessages, userId);
 
