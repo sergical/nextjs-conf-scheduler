@@ -29,7 +29,7 @@ export type AuthState = {
 export async function signup(_prevState: AuthState, formData: FormData): Promise<AuthState> {
   const startTime = Date.now();
 
-  const result = await Sentry.withServerActionInstrumentation(
+  return Sentry.withServerActionInstrumentation(
     "auth.signup",
     { headers: await headers() },
     async () => {
@@ -87,21 +87,15 @@ export async function signup(_prevState: AuthState, formData: FormData): Promise
         duration_ms: Date.now() - startTime,
       });
 
-      return {};
+      redirect("/");
     },
   );
-
-  if (result.error || result.fieldErrors) {
-    return result;
-  }
-
-  redirect("/");
 }
 
 export async function login(_prevState: AuthState, formData: FormData): Promise<AuthState> {
   const startTime = Date.now();
 
-  const result = await Sentry.withServerActionInstrumentation(
+  return Sentry.withServerActionInstrumentation(
     "auth.login",
     { headers: await headers() },
     async () => {
@@ -125,9 +119,9 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
       const { email, password } = validated.data;
 
       // Find user
-      const found = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
-      const user = found[0];
+      const user = result[0];
 
       if (!user) {
         Sentry.logger.info("Login failed - user not found", {
@@ -160,21 +154,15 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
         duration_ms: Date.now() - startTime,
       });
 
-      return {};
+      redirect("/");
     },
   );
-
-  if (result.error || result.fieldErrors) {
-    return result;
-  }
-
-  redirect("/");
 }
 
 export async function logout() {
   const startTime = Date.now();
 
-  await Sentry.withServerActionInstrumentation(
+  return Sentry.withServerActionInstrumentation(
     "auth.logout",
     { headers: await headers() },
     async () => {
@@ -184,8 +172,8 @@ export async function logout() {
         action: "auth.logout",
         duration_ms: Date.now() - startTime,
       });
+
+      redirect("/login");
     },
   );
-
-  redirect("/login");
 }

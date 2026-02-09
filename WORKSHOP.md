@@ -188,7 +188,7 @@ No visibility into what's happening inside operations. When things fail, you don
 
 **Files to modify:**
 - `sentry.server.config.ts` - add `enableLogs: true`
-- `instrumentation-client.ts` - add `enableLogs: true`
+- `sentry.client.config.ts` - add `enableLogs: true`
 - `sentry.edge.config.ts` - add `enableLogs: true`
 - `lib/actions/auth.ts` - add `Sentry.logger` calls
 - `lib/actions/schedule.ts` - add `Sentry.logger` calls
