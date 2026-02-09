@@ -2,9 +2,25 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useMemo, useState } from "react";
+import { CalendarPlusIcon, ClockIcon, MapPinIcon, UserIcon } from "lucide-react";
+import { useMemo, useState, useTransition } from "react";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
+import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import {
+  PromptInput,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+} from "@/components/ai-elements/prompt-input";
+import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
+import { Tool, ToolContent, ToolHeader } from "@/components/ai-elements/tool";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { addToSchedule } from "@/lib/actions/schedule";
 
 const EXAMPLE_PROMPTS = [
   "I'm interested in AI and machine learning talks",
@@ -13,6 +29,112 @@ const EXAMPLE_PROMPTS = [
   "I want to learn about performance optimization",
   "Help me build a schedule focused on developer experience",
 ];
+
+interface TalkResult {
+  id: string;
+  title: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+  level: string;
+  format: string;
+  speaker: string;
+  speakerCompany: string;
+  track: string;
+  trackId: string;
+  room: string;
+}
+
+function TalkCard({ talk }: { talk: TalkResult }) {
+  const [isPending, startTransition] = useTransition();
+  const [added, setAdded] = useState(false);
+
+  const handleAdd = () => {
+    startTransition(async () => {
+      const result = await addToSchedule(talk.id);
+      if (result.success || result.error === "Talk already in your schedule") {
+        setAdded(true);
+      }
+    });
+  };
+
+  return (
+    <div className="rounded-lg border bg-card p-3 space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-medium text-sm leading-tight">{talk.title}</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <UserIcon className="size-3" />
+              {talk.speaker}
+            </span>
+            <span className="flex items-center gap-1">
+              <ClockIcon className="size-3" />
+              {talk.startTime} - {talk.endTime}
+            </span>
+            <span className="flex items-center gap-1">
+              <MapPinIcon className="size-3" />
+              {talk.room}
+            </span>
+          </div>
+        </div>
+        <Badge variant="secondary" className="shrink-0 text-xs">
+          {talk.track}
+        </Badge>
+      </div>
+      <Button
+        size="sm"
+        variant={added ? "outline" : "default"}
+        className="w-full text-xs"
+        onClick={handleAdd}
+        disabled={isPending || added}
+      >
+        {isPending ? (
+          "Adding..."
+        ) : added ? (
+          "Added"
+        ) : (
+          <>
+            <CalendarPlusIcon className="size-3 mr-1" />
+            Add to Schedule
+          </>
+        )}
+      </Button>
+    </div>
+  );
+}
+
+function isTalkResultArray(output: unknown): output is TalkResult[] {
+  return (
+    Array.isArray(output) &&
+    output.length > 0 &&
+    typeof output[0]?.id === "string" &&
+    typeof output[0]?.title === "string"
+  );
+}
+
+function ToolOutputContent({ toolName, output }: { toolName: string; output: unknown }) {
+  if ((toolName === "searchTalks" || toolName === "getTalkDetails") && output != null) {
+    const talks = Array.isArray(output) ? output : [output];
+    if (isTalkResultArray(talks)) {
+      return (
+        <div className="space-y-2">
+          {talks.map((talk) => (
+            <TalkCard key={talk.id} talk={talk} />
+          ))}
+        </div>
+      );
+    }
+  }
+  if (output != null) {
+    return (
+      <pre className="text-xs overflow-auto rounded bg-muted/50 p-2">
+        {JSON.stringify(output, null, 2)}
+      </pre>
+    );
+  }
+  return null;
+}
 
 export function AIChat() {
   const [inputValue, setInputValue] = useState("");
@@ -25,26 +147,13 @@ export function AIChat() {
 
   const isLoading = status === "streaming" || status === "submitted";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
-
-    const message = inputValue;
-    setInputValue("");
-    await sendMessage({ text: message });
-  };
-
-  const handleExampleClick = (prompt: string) => {
-    setInputValue(prompt);
-  };
-
   return (
-    <div className="space-y-4">
+    <div className="flex h-[calc(100vh-16rem)] flex-col gap-4">
       {/* Messages */}
-      <Card className="min-h-[400px] max-h-[600px] overflow-y-auto">
-        <CardContent className="pt-4">
+      <Conversation className="rounded-xl border bg-card">
+        <ConversationContent>
           {messages.length === 0 ? (
-            <div className="text-center py-8">
+            <div className="flex size-full flex-col items-center justify-center gap-3 p-8 text-center">
               <p className="text-muted-foreground mb-4">
                 Start by telling me about your interests, or try one of these examples:
               </p>
@@ -54,7 +163,7 @@ export function AIChat() {
                     key={prompt}
                     variant="outline"
                     size="sm"
-                    onClick={() => handleExampleClick(prompt)}
+                    onClick={() => setInputValue(prompt)}
                     className="text-xs"
                   >
                     {prompt}
@@ -63,57 +172,95 @@ export function AIChat() {
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                      message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
-                    }`}
-                  >
-                    <div className="whitespace-pre-wrap text-sm">
-                      {message.parts?.map((part, i) => {
-                        if (part.type === "text") {
-                          return (
-                            // biome-ignore lint/suspicious/noArrayIndexKey: message parts have no stable ID
-                            <span key={i}>{part.text}</span>
-                          );
-                        }
-                        return null;
-                      })}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {isLoading && messages[messages.length - 1]?.role === "user" && (
-                <div className="flex justify-start">
-                  <div className="bg-muted rounded-lg px-4 py-2">
-                    <span className="animate-pulse text-sm">Thinking...</span>
-                  </div>
-                </div>
-              )}
-            </div>
+            messages.map((message) => (
+              <Message key={message.id} from={message.role}>
+                <MessageContent>
+                  {message.parts?.map((part, i) => {
+                    if (part.type === "text") {
+                      return (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: message parts have no stable ID
+                        <MessageResponse key={i}>{part.text}</MessageResponse>
+                      );
+                    }
+
+                    if (part.type === "reasoning") {
+                      return (
+                        <Reasoning
+                          // biome-ignore lint/suspicious/noArrayIndexKey: message parts have no stable ID
+                          key={i}
+                          isStreaming={status === "streaming"}
+                        >
+                          <ReasoningTrigger />
+                          <ReasoningContent>{part.text}</ReasoningContent>
+                        </Reasoning>
+                      );
+                    }
+
+                    if (part.type.startsWith("tool-") || part.type === "dynamic-tool") {
+                      const toolPart = part as {
+                        type: string;
+                        toolName?: string;
+                        state: string;
+                        input?: unknown;
+                        output?: unknown;
+                        errorText?: string;
+                      };
+                      const toolName = toolPart.toolName ?? toolPart.type.replace(/^tool-/, "");
+
+                      return (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: message parts have no stable ID
+                        <Tool key={i}>
+                          <ToolHeader
+                            type={toolPart.type as "tool-invocation"}
+                            state={toolPart.state as "input-available" | "output-available"}
+                            title={toolName}
+                          />
+                          <ToolContent>
+                            <ToolOutputContent toolName={toolName} output={toolPart.output} />
+                            {toolPart.errorText ? (
+                              <p className="text-sm text-destructive">{toolPart.errorText}</p>
+                            ) : null}
+                          </ToolContent>
+                        </Tool>
+                      );
+                    }
+
+                    return null;
+                  })}
+                </MessageContent>
+              </Message>
+            ))
           )}
-        </CardContent>
-      </Card>
+          {isLoading && messages[messages.length - 1]?.role === "user" && (
+            <Message from="assistant">
+              <MessageContent>
+                <span className="animate-pulse text-sm text-muted-foreground">Thinking...</span>
+              </MessageContent>
+            </Message>
+          )}
+        </ConversationContent>
+        <ConversationScrollButton />
+      </Conversation>
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          type="text"
+      <PromptInput
+        onSubmit={async ({ text }) => {
+          if (!text.trim() || isLoading) return;
+          setInputValue("");
+          await sendMessage({ text });
+        }}
+      >
+        <PromptInputTextarea
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={(e) => setInputValue(e.currentTarget.value)}
           placeholder="Tell me about your interests..."
-          className="flex-1 px-4 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           disabled={isLoading}
         />
-        <Button type="submit" disabled={isLoading || !inputValue.trim()}>
-          {isLoading ? "Thinking..." : "Send"}
-        </Button>
-      </form>
+        <PromptInputFooter>
+          <div />
+          <PromptInputSubmit status={status} disabled={!inputValue.trim()} />
+        </PromptInputFooter>
+      </PromptInput>
 
       <p className="text-xs text-muted-foreground text-center">
         The AI will search the conference schedule and recommend talks based on your interests.
