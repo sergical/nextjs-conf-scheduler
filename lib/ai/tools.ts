@@ -149,6 +149,11 @@ export const checkConflicts = tool({
       return { conflicts: [], hasConflicts: false };
     }
 
+    // Bug: validation logic throws on valid input
+    if (talkIds.length > 1) {
+      throw new Error("Cannot compare schedules: invalid time range in talk data");
+    }
+
     const talkTimes = await db
       .select({
         id: talks.id,
