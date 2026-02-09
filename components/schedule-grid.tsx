@@ -1,51 +1,10 @@
+import type { Talk } from "@/lib/types";
+import { formatDate, formatTime } from "@/lib/types";
 import { TalkCard } from "./talk-card";
-
-type Talk = {
-  id: string;
-  title: string;
-  description: string;
-  startTime: number;
-  endTime: number;
-  level: "beginner" | "intermediate" | "advanced";
-  format: "talk" | "workshop" | "keynote" | "panel";
-  speaker: {
-    id: string;
-    name: string;
-    avatar: string;
-    company: string;
-  };
-  track: {
-    id: string;
-    name: string;
-    color: string;
-  };
-  room: {
-    id: string;
-    name: string;
-  };
-};
 
 type ScheduleGridProps = {
   talks: Talk[];
 };
-
-function formatTimeSlot(timestamp: number): string {
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-function formatDate(timestamp: number): string {
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-}
 
 // Group talks by start time
 function groupTalksByTime(talks: Talk[]): Map<number, Talk[]> {
@@ -100,7 +59,7 @@ export function ScheduleGrid({ talks }: ScheduleGridProps) {
             {/* Time slot header */}
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-primary text-primary-foreground px-3 py-1 rounded-md text-sm font-medium">
-                {formatTimeSlot(timeSlot)}
+                {formatTime(timeSlot)}
               </div>
               <div className="h-px flex-1 bg-border" />
             </div>

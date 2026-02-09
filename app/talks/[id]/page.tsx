@@ -6,46 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { verifySession } from "@/lib/auth/dal";
 import { trpc } from "@/lib/trpc/server";
+import { formatDate, formatDuration, formatTime, levelColors } from "@/lib/types";
 import { AddToScheduleButton } from "./add-to-schedule-button";
 
 type Params = Promise<{ id: string }>;
-
-function formatTime(timestamp: number): string {
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-function formatDate(timestamp: number): string {
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function formatDuration(start: number, end: number): string {
-  const minutes = Math.round((end - start) / 60);
-  if (minutes >= 60) {
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0
-      ? `${hours}h ${remainingMinutes}m`
-      : `${hours} hour${hours > 1 ? "s" : ""}`;
-  }
-  return `${minutes} minutes`;
-}
-
-const levelColors = {
-  beginner: "bg-green-500/10 text-green-700 dark:text-green-400",
-  intermediate: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
-  advanced: "bg-red-500/10 text-red-700 dark:text-red-400",
-};
 
 const formatLabels = {
   talk: "Talk",
@@ -56,8 +20,7 @@ const formatLabels = {
 
 export default async function TalkDetailPage({ params }: { params: Params }) {
   const { id } = await params;
-  const api = await trpc();
-  const session = await verifySession();
+  const [api, session] = await Promise.all([trpc(), verifySession()]);
 
   const [talk, isInSchedule] = await Promise.all([
     api.talks.byId({ id }),
