@@ -40,6 +40,14 @@ export async function signup(_prevState: AuthState, formData: FormData): Promise
       const validated = signupSchema.safeParse(rawData);
 
       if (!validated.success) {
+        Sentry.metrics.count("auth_validation_failed", 1, {
+          attributes: { action: "signup" },
+        });
+        Sentry.logger.warn("Signup validation failed", {
+          action: "auth.signup",
+          validation_errors: Object.keys(validated.error.flatten().fieldErrors).join(", "),
+          duration_ms: Date.now() - startTime,
+        });
         return {
           fieldErrors: validated.error.flatten().fieldErrors,
         };
@@ -51,6 +59,15 @@ export async function signup(_prevState: AuthState, formData: FormData): Promise
       const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
       if (existingUser.length > 0) {
+        Sentry.metrics.distribution("auth_operation_duration", Date.now() - startTime, {
+          unit: "millisecond",
+          attributes: { action: "signup", result: "duplicate_email" },
+        });
+        Sentry.logger.info("Signup attempted with existing email", {
+          action: "auth.signup",
+          result: "duplicate_email",
+          duration_ms: Date.now() - startTime,
+        });
         return { error: "An account with this email already exists" };
       }
 
@@ -67,7 +84,20 @@ export async function signup(_prevState: AuthState, formData: FormData): Promise
       });
 
       await createSession(userId);
-      redirect("/");
+
+      Sentry.metrics.count("auth_signup_success");
+      Sentry.metrics.distribution("auth_operation_duration", Date.now() - startTime, {
+        unit: "millisecond",
+        attributes: { action: "signup", result: "success" },
+      });
+      Sentry.logger.info("User signed up", {
+        action: "auth.signup",
+        user_id: userId,
+        result: "success",
+        duration_ms: Date.now() - startTime,
+      });
+
+      return {};
     },
   );
 }
@@ -85,6 +115,13 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
       const validated = loginSchema.safeParse(rawData);
 
       if (!validated.success) {
+        Sentry.metrics.count("auth_validation_failed", 1, {
+          attributes: { action: "login" },
+        });
+        Sentry.logger.warn("Login validation failed", {
+          action: "auth.login",
+          duration_ms: Date.now() - startTime,
+        });
         return {
           fieldErrors: validated.error.flatten().fieldErrors,
         };
@@ -98,6 +135,18 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
       const user = found[0];
 
       if (!user) {
+        Sentry.metrics.count("auth_login_failed", 1, {
+          attributes: { reason: "user_not_found" },
+        });
+        Sentry.metrics.distribution("auth_operation_duration", Date.now() - startTime, {
+          unit: "millisecond",
+          attributes: { action: "login", result: "user_not_found" },
+        });
+        Sentry.logger.info("Login failed - user not found", {
+          action: "auth.login",
+          result: "user_not_found",
+          duration_ms: Date.now() - startTime,
+        });
         return { error: "Invalid email or password" };
       }
 
@@ -105,11 +154,37 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
       const passwordMatch = await compare(password, user.password);
 
       if (!passwordMatch) {
+        Sentry.metrics.count("auth_login_failed", 1, {
+          attributes: { reason: "invalid_password" },
+        });
+        Sentry.metrics.distribution("auth_operation_duration", Date.now() - startTime, {
+          unit: "millisecond",
+          attributes: { action: "login", result: "invalid_password" },
+        });
+        Sentry.logger.info("Login failed - invalid password", {
+          action: "auth.login",
+          user_id: user.id,
+          result: "invalid_password",
+          duration_ms: Date.now() - startTime,
+        });
         return { error: "Invalid email or password" };
       }
 
       await createSession(user.id);
-      redirect("/");
+
+      Sentry.metrics.count("auth_login_success");
+      Sentry.metrics.distribution("auth_operation_duration", Date.now() - startTime, {
+        unit: "millisecond",
+        attributes: { action: "login", result: "success" },
+      });
+      Sentry.logger.info("User logged in", {
+        action: "auth.login",
+        user_id: user.id,
+        result: "success",
+        duration_ms: Date.now() - startTime,
+      });
+
+      return {};
     },
   );
 }
@@ -120,6 +195,16 @@ export async function logout() {
     { headers: await headers() },
     async () => {
       await deleteSession();
+
+      Sentry.metrics.count("auth_logout");
+      Sentry.metrics.distribution("auth_operation_duration", Date.now() - startTime, {
+        unit: "millisecond",
+        attributes: { action: "logout", result: "success" },
+      });
+      Sentry.logger.info("User logged out", {
+        action: "auth.logout",
+        duration_ms: Date.now() - startTime,
+      });
     },
   );
 
