@@ -45,7 +45,7 @@ Each module has a starting branch (`module-X-start`) that's missing one Sentry f
 ```
 Module 1: Error Capture     → "Something's wrong, what is it?"
 Module 2: Tracing           → "Where did the request go?"
-Module 3: Structured Logs   → "What happened during the request?"
+Module 3: Logs & Metrics    → "What happened during the request?"
 Module 4: Database Tracing  → "Why is this slow?"
 Module 5: AI Monitoring     → "What did the AI do?"
 ```
@@ -163,35 +163,49 @@ export async function addToSchedule(talkId: string) {
 
 ---
 
-## Module 3: Structured Logs (Wide Events)
+## Module 3: Structured Logs and Metrics
 
 **Branch:** `git checkout module-3-start`
 
 ### Learning Objectives
 - Enable `enableLogs: true` in Sentry config
 - Use `Sentry.logger` for structured logs
+- Use `Sentry.metrics` for counters and distributions
 - Wide events pattern: one rich log vs many thin logs
+- Know when to use logs vs metrics vs exceptions
+
+### When to Use What
+
+| Signal | Use When | Example |
+|--------|----------|---------|
+| **Exception** | Something is broken and needs fixing | Unhandled error, failed DB query |
+| **Log** | You need context about what happened (who, what, why) | "User X signed up", "Schedule add attempted — duplicate" |
+| **Metric** | You need to count or measure something over time | Login failure rate, operation p95 duration |
+
+**Rule of thumb:** If you'd alert on a *count* or *percentile*, use a metric. If you'd search for a *specific request*, use a log.
 
 ### The Bug
 
-No visibility into what's happening inside operations. When things fail, you don't know the state of the system.
+No visibility into what's happening inside operations. When things fail, you don't know the state of the system — no logs, no metrics.
 
 ### Steps
 
 1. Try various actions (login, signup, add to schedule)
-2. Check Sentry Logs - do you see any logs?
+2. Check Sentry Logs — do you see any logs?
+3. Check Sentry Metrics — do you see any custom metrics?
 
 ### Your Task
 
 1. Enable logs in Sentry configuration
 2. Add wide event logs to server actions
+3. Add metrics (counters + distributions) alongside logs
 
 **Files to modify:**
 - `sentry.server.config.ts` - add `enableLogs: true`
 - `instrumentation-client.ts` - add `enableLogs: true`
 - `sentry.edge.config.ts` - add `enableLogs: true`
-- `lib/actions/auth.ts` - add `Sentry.logger` calls
-- `lib/actions/schedule.ts` - add `Sentry.logger` calls
+- `lib/actions/auth.ts` - add `Sentry.logger` and `Sentry.metrics` calls
+- `lib/actions/schedule.ts` - add `Sentry.logger` and `Sentry.metrics` calls
 
 ### The Fix
 
@@ -212,9 +226,23 @@ export async function addToSchedule(talkId: string) {
     async () => {
       const { userId } = await requireAuth();
 
-      // ... existing logic ...
+      // Check for duplicate...
+      if (existing.length > 0) {
+        Sentry.metrics.count("schedule_add_duplicate");
+        Sentry.logger.info("Schedule add attempted - already exists", { ... });
+        return { error: "Talk already in your schedule" };
+      }
 
-      // Wide event: all context in one log
+      // ... insert logic ...
+
+      // Metric: countable event + duration distribution
+      Sentry.metrics.count("schedule_add_success");
+      Sentry.metrics.distribution("schedule_operation_duration", Date.now() - startTime, {
+        unit: "millisecond",
+        attributes: { action: "add" },
+      });
+
+      // Log: wide event with full context
       Sentry.logger.info("Schedule item added", {
         talk_id: talkId,
         user_id: userId,
@@ -226,11 +254,18 @@ export async function addToSchedule(talkId: string) {
     }
   );
 }
+
+// lib/actions/auth.ts — same pattern for login/signup/logout:
+Sentry.metrics.count("auth_login_success");
+Sentry.metrics.distribution("auth_operation_duration", Date.now() - startTime, {
+  unit: "millisecond",
+  attributes: { action: "login", result: "success" },
+});
 ```
 
 ### Success Criteria
-- Logs appear in Sentry Logs view
-- Logs have structured attributes you can filter/search
+- Logs appear in Sentry Logs view with structured attributes you can filter/search
+- Metrics appear in Sentry Metrics view (counters for auth/schedule events, distributions for duration)
 
 ---
 
@@ -307,13 +342,14 @@ Sentry.init({
 
 ---
 
-## Module 5: AI Agent Monitoring
+## Module 5: AI Agent Monitoring (Auto-Instrumented)
 
 **Branch:** `git checkout module-5-start`
 
 ### Learning Objectives
-- Use `vercelAIIntegration()` for automatic LLM tracing
-- Add manual `gen_ai.execute_tool` spans for tool calls
+- Use `vercelAIIntegration()` for automatic LLM and tool tracing
+- Enable `experimental_telemetry` on AI SDK calls
+- Understand what auto-instrumentation gives you for free
 - Find AI traces in Sentry's AI Insights
 
 ### The Bug
@@ -324,16 +360,17 @@ The AI chat has no observability. When it fails or gives bad responses, you can'
 
 1. Go to AI Builder (requires login)
 2. Ask: "What AI talks are available?"
-3. Check Sentry - can you see what the AI did?
+3. Check Sentry — can you see what the AI did?
 
 ### Your Task
 
-Add AI monitoring to trace LLM calls and tool executions.
+Add AI monitoring using Sentry's auto-instrumentation — **no manual spans needed**.
 
 **Files to modify:**
 - `sentry.server.config.ts` - add `vercelAIIntegration()`
-- `lib/ai/tools.ts` - wrap tool execute with `Sentry.startSpan`
-- `app/api/ai/chat/route.ts` - add wide event logging
+- `lib/ai/agents.ts` - add `experimental_telemetry: { isEnabled: true }` to AI SDK calls
+
+**Note:** `app/api/ai/chat/route.ts` already has pipeline-level `Sentry.startSpan` and `Sentry.logger.info` for custom context — those stay as-is.
 
 ### The Fix
 
@@ -352,49 +389,33 @@ Sentry.init({
 ```
 
 ```typescript
-// lib/ai/tools.ts - wrap tool execution
-import * as Sentry from "@sentry/nextjs";
+// lib/ai/agents.ts — enable telemetry on every AI SDK call
+const { text } = await generateText({
+  model: AGENTS.router.model,
+  system: routerSystemPrompt,
+  prompt: userMessage,
+  experimental_telemetry: { isEnabled: true },
+});
 
-export const searchTalks = tool({
-  description: "Search for conference talks...",
-  inputSchema: z.object({ /* ... */ }),
-  execute: async (params) => {
-    return Sentry.startSpan(
-      { op: "gen_ai.execute_tool", name: "execute_tool searchTalks" },
-      async (span) => {
-        span.setAttribute("gen_ai.tool.name", "searchTalks");
-        span.setAttribute("gen_ai.tool.input", JSON.stringify(params));
-
-        const result = await /* ... actual tool logic ... */;
-
-        span.setAttribute("gen_ai.tool.output_count", result.length);
-        return result;
-      }
-    );
-  },
+const result = streamText({
+  model: AGENTS.search.model,
+  system: searchAgentSystemPrompt,
+  messages,
+  tools: getSearchTools(userId),
+  experimental_telemetry: { isEnabled: true },
 });
 ```
 
-```typescript
-// app/api/ai/chat/route.ts - wide event logging
-export async function POST(req: Request) {
-  const startTime = Date.now();
-  // ... existing code ...
+When `vercelAIIntegration()` + `experimental_telemetry` are both enabled, Sentry automatically captures:
+- LLM call spans (model, tokens, duration)
+- Tool execution spans (tool name, inputs, outputs)
+- Streaming metrics
 
-  Sentry.logger.info("AI chat request processed", {
-    user_id: userId,
-    message_count: messages.length,
-    pipeline: "conference-scheduler",
-    duration_ms: Date.now() - startTime,
-  });
-
-  return response;
-}
-```
+No manual `Sentry.startSpan` wrappers needed in tool definitions.
 
 ### Success Criteria
-- LLM calls appear in Sentry traces
-- Tool executions have their own spans
+- LLM calls appear in Sentry traces with model and token details
+- Tool executions appear as child spans automatically
 - AI metrics visible in AI Insights view
 
 ---
@@ -405,9 +426,9 @@ After completing all modules, your app should have:
 
 - [ ] **Module 1:** Theme toggle works, no hydration errors
 - [ ] **Module 2:** Server actions show as named spans in traces
-- [ ] **Module 3:** Structured logs appear with queryable attributes
+- [ ] **Module 3:** Structured logs appear with queryable attributes; metrics (counters + distributions) appear in Metrics view
 - [ ] **Module 4:** Database queries visible in trace waterfalls
-- [ ] **Module 5:** AI calls and tool executions tracked
+- [ ] **Module 5:** AI calls and tool executions auto-instrumented via `experimental_telemetry`
 
 ## Resources
 

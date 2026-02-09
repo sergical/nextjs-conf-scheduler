@@ -19,19 +19,14 @@ export async function POST(req: Request) {
       },
     },
     async () => {
-      // Convert messages to the format expected by the agent pipeline
+      // Convert UI messages (parts-based) to the format expected by the agent pipeline
       const formattedMessages = messages
-        .map((m: { role: string; content: string | Array<{ type: string; text?: string }> }) => ({
+        .map((m: { role: string; parts?: Array<{ type: string; text?: string }> }) => ({
           role: m.role as "user" | "assistant",
-          content:
-            typeof m.content === "string"
-              ? m.content
-              : Array.isArray(m.content)
-                ? (m.content as Array<{ type: string; text?: string }>)
-                    .filter((p) => p.type === "text")
-                    .map((p) => p.text || "")
-                    .join("")
-                : "",
+          content: (m.parts ?? [])
+            .filter((p: { type: string }) => p.type === "text")
+            .map((p: { text?: string }) => p.text || "")
+            .join(""),
         }))
         .filter((m: { content: string }) => m.content.length > 0);
 

@@ -2,65 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useTransition } from "react";
+import { useMemo, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { removeFromSchedule } from "@/lib/actions/schedule";
-
-type Talk = {
-  id: string;
-  title: string;
-  description: string;
-  startTime: number;
-  endTime: number;
-  level: "beginner" | "intermediate" | "advanced";
-  format: "talk" | "workshop" | "keynote" | "panel";
-  speaker: {
-    id: string;
-    name: string;
-    avatar: string;
-    company: string;
-  };
-  track: {
-    id: string;
-    name: string;
-    color: string;
-  };
-  room: {
-    id: string;
-    name: string;
-  };
-};
+import { formatDuration, formatTime, levelColors, type Talk } from "@/lib/types";
 
 type MyScheduleListProps = {
   talks: Talk[];
 };
-
-const levelColors = {
-  beginner: "bg-green-500/10 text-green-700 dark:text-green-400",
-  intermediate: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
-  advanced: "bg-red-500/10 text-red-700 dark:text-red-400",
-};
-
-function formatTime(timestamp: number): string {
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-function formatDuration(start: number, end: number): string {
-  const minutes = Math.round((end - start) / 60);
-  if (minutes >= 60) {
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
-  }
-  return `${minutes}m`;
-}
 
 // Check for conflicts between talks
 function findConflicts(talks: Talk[]): Map<string, string[]> {
@@ -166,16 +117,18 @@ function TalkItem({
 
 export function MyScheduleList({ talks }: MyScheduleListProps) {
   const [isPending, startTransition] = useTransition();
-  const conflicts = findConflicts(talks);
+  const { conflicts, sortedTalks } = useMemo(() => {
+    return {
+      conflicts: findConflicts(talks),
+      sortedTalks: [...talks].sort((a, b) => a.startTime - b.startTime),
+    };
+  }, [talks]);
 
   const handleRemove = (talkId: string) => {
     startTransition(async () => {
       await removeFromSchedule(talkId);
     });
   };
-
-  // Sort talks by start time
-  const sortedTalks = [...talks].sort((a, b) => a.startTime - b.startTime);
 
   return (
     <div className="space-y-4">
