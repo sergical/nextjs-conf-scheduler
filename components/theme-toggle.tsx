@@ -7,15 +7,22 @@ import { Button } from "@/components/ui/button";
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
+  // BUG: Conditional rendering based on theme causes hydration mismatch
+  // Server renders "system" but client may read "dark" from localStorage
+  const isDark = theme === "dark";
+
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label="Toggle theme"
     >
-      <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-      <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      {isDark ? (
+        <Moon className="h-4 w-4" />
+      ) : (
+        <Sun className="h-4 w-4" />
+      )}
     </Button>
   );
 }
