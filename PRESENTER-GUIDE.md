@@ -182,8 +182,8 @@ pnpm dev
 **Demo flow:**
 1. Navigate around — view talks, view a speaker page
 2. Open Sentry Performance → open a trace → "No DB spans"
-3. Open `lib/db/index.ts` → export the raw libsql client via Proxy
-4. Open `sentry.server.config.ts` → add `libsqlIntegration(libsqlClient, Sentry)`
+3. Open `lib/db/index.ts` → export `getClient()` function
+4. Open `sentry.server.config.ts` → add `libsqlIntegration(getClient(), Sentry)`
 5. Import `libsqlIntegration` from `sentry-integration-libsql-client`
 6. Navigate around again → open a trace
 7. **Show the DB spans** in the waterfall — query text, duration
@@ -192,7 +192,7 @@ pnpm dev
 **Talking points:**
 - The integration auto-instruments every query — zero changes to your ORM code
 - You can see the actual SQL and timing in the span
-- The Proxy pattern avoids build-time errors (env vars not available during `next build`)
+- `getClient()` lazily creates the client at runtime, avoiding build-time errors (env vars not available during `next build`)
 
 **Files touched:**
 - `lib/db/index.ts`
