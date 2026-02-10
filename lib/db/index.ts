@@ -5,7 +5,7 @@ import * as schema from "./schema";
 let _client: Client | null = null;
 let _db: LibSQLDatabase<typeof schema> | null = null;
 
-function getClient(): Client {
+export function getClient(): Client {
   if (!_client) {
     if (!process.env.TURSO_DATABASE_URL) {
       throw new Error("TURSO_DATABASE_URL environment variable is not set");
@@ -24,16 +24,6 @@ export function getDb() {
   }
   return _db;
 }
-
-// Export raw client for Sentry integration
-export const libsqlClient = new Proxy({} as Client, {
-  get(_target, prop) {
-    return Reflect.get(getClient(), prop);
-  },
-  set(_target, prop, value) {
-    return Reflect.set(getClient(), prop, value);
-  },
-});
 
 // For backwards compatibility - creates db on first access
 export const db = new Proxy({} as LibSQLDatabase<typeof schema>, {
