@@ -1,9 +1,18 @@
+import * as Sentry from "@sentry/nextjs";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
-import { verifySession } from "@/lib/auth/dal";
+import { getUser, verifySession } from "@/lib/auth/dal";
 
 export const createTRPCContext = async () => {
   const session = await verifySession();
+
+  if (session.isAuth && session.userId) {
+    const user = await getUser();
+    if (user) {
+      Sentry.setUser({ id: user.id, email: user.email, username: user.name });
+    }
+  }
+
   return { session };
 };
 
