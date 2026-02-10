@@ -181,21 +181,27 @@ pnpm dev
 
 **Demo flow:**
 1. Navigate around — view talks, view a speaker page
-2. Open Sentry Performance → open a trace → "No DB spans"
-3. Open `lib/db/index.ts` → export `getClient()` function
-4. Open `sentry.server.config.ts` → add `libsqlIntegration(getClient(), Sentry)`
-5. Import `libsqlIntegration` from `sentry-integration-libsql-client`
-6. Navigate around again → open a trace
-7. **Show the DB spans** in the waterfall — query text, duration
-8. "Now you can spot the slow query without adding any logging to your Drizzle code"
+2. Open Sentry Performance → open a trace → "No `db.query` spans — just `http.client` POST to Turso"
+3. "Why? Two problems: the client is a module-level singleton, and Next.js bundles this file twice"
+4. Open `lib/db/index.ts` → explain the `let _client` pattern
+5. **Fix 1:** Change to `globalThis` singleton — "Now both bundles share the same client instance"
+6. Open `next.config.ts` → **Fix 2:** Add `serverExternalPackages: ["@libsql/client"]` — "This tells Next.js not to bundle this module, so there's truly one copy"
+7. Open `sentry.server.config.ts` → **Fix 3:** Add the inline `libsqlIntegration` function + `getClient` import
+8. Walk through the integration: "It's just monkey-patching `client.execute` with `Sentry.startSpan` — we set `db.system`, `db.statement`, and use the SQL as the span name"
+9. Navigate around again → open a trace
+10. **Show the `db.query` spans** in the waterfall — SQL statement as name, `db.system: sqlite`, timing
+11. "Now you can spot slow queries without adding any logging to your Drizzle code"
 
 **Talking points:**
+- **Why `globalThis`:** Next.js creates separate bundles for `instrumentation.ts` and page handlers. Module-level `let _client` creates TWO clients — the integration patches one, queries run on the other. `globalThis` ensures both bundles share the same instance.
+- **Why `serverExternalPackages`:** Without it, the bundler inlines `@libsql/client` into each bundle, defeating the `globalThis` sharing. Externalizing it means Node.js loads one copy.
+- **Writing a Sentry integration is simple:** Just `startSpan` with the right OTel attributes (`db.system`, `db.statement`). No complex SDK internals needed.
 - The integration auto-instruments every query — zero changes to your ORM code
-- You can see the actual SQL and timing in the span
 - `getClient()` lazily creates the client at runtime, avoiding build-time errors (env vars not available during `next build`)
 
 **Files touched:**
 - `lib/db/index.ts`
+- `next.config.ts`
 - `sentry.server.config.ts`
 
 ---

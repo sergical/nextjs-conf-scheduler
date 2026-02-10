@@ -274,65 +274,148 @@ Sentry.metrics.distribution("auth_operation_duration", Date.now() - startTime, {
 **Branch:** `git checkout module-4-start`
 
 ### Learning Objectives
-- Use `sentry-integration-libsql-client` for automatic DB tracing
-- View full distributed traces: HTTP → tRPC → DB
-- Identify slow queries in Sentry Performance
+- Understand why Next.js bundling breaks module-level singletons (instrumentation vs page-handler bundles)
+- Use `globalThis` to share a client instance across bundles
+- Write a simple inline Sentry integration with proper `db.system` and `db.statement` attributes
+- Use `serverExternalPackages` to externalize a module from bundling
 
 ### The Bug
 
-Database queries are invisible in traces. You can't see query timing or identify slow queries.
+Database queries are invisible in traces. Two separate issues are at play:
+
+1. **No shared client:** `lib/db/index.ts` uses a module-level variable (`let _client`), but Next.js bundles this file separately for the instrumentation hook and for page handlers — creating two different client instances. The integration patches one; queries run on the other.
+2. **No `serverExternalPackages`:** Without externalizing `@libsql/client`, the bundler duplicates the module, making `globalThis` sharing ineffective.
 
 ### Steps
 
 1. Navigate around the app (view talks, speakers)
 2. Check Sentry Performance for a trace
-3. Notice there's no database span
+3. Notice there are no `db.query` spans — only `http.client` POST spans to Turso
 
 ### Your Task
 
-Add the libsql integration to trace all database queries.
+Fix database tracing by modifying 3 files.
 
 **Files to modify:**
-- `lib/db/index.ts` - export the raw client
-- `sentry.server.config.ts` - add `libsqlIntegration`
+- `lib/db/index.ts` — switch to `globalThis` singleton
+- `next.config.ts` — add `serverExternalPackages: ["@libsql/client"]`
+- `sentry.server.config.ts` — add inline `libsqlIntegration` + import `getClient`
 
 ### The Fix
 
-```typescript
-// lib/db/index.ts
-import { createClient, Client } from "@libsql/client";
+**1. `lib/db/index.ts` — globalThis singleton**
 
-let _client: Client | null = null;
+```typescript
+import { type Client, createClient } from "@libsql/client";
+import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
+import * as schema from "./schema";
+
+// Store singletons on globalThis so the instrumentation bundle (where Sentry
+// patches client.execute) and page-handler bundles share the same instance.
+const CLIENT_KEY = "__libsql_client" as const;
+const DB_KEY = "__drizzle_db" as const;
+
+declare global {
+  var __libsql_client: Client | undefined;
+  var __drizzle_db: LibSQLDatabase<typeof schema> | undefined;
+}
 
 export function getClient(): Client {
-  if (!_client) {
-    _client = createClient({
-      url: process.env.TURSO_DATABASE_URL!,
+  if (!globalThis[CLIENT_KEY]) {
+    if (!process.env.TURSO_DATABASE_URL) {
+      throw new Error("TURSO_DATABASE_URL environment variable is not set");
+    }
+    globalThis[CLIENT_KEY] = createClient({
+      url: process.env.TURSO_DATABASE_URL,
       authToken: process.env.TURSO_AUTH_TOKEN,
     });
   }
-  return _client;
+  return globalThis[CLIENT_KEY];
 }
+
+export function getDb() {
+  if (!globalThis[DB_KEY]) {
+    globalThis[DB_KEY] = drizzle(getClient(), { schema });
+  }
+  return globalThis[DB_KEY];
+}
+
+// For backwards compatibility - creates db on first access
+export const db = new Proxy({} as LibSQLDatabase<typeof schema>, {
+  get(_target, prop) {
+    return Reflect.get(getDb(), prop);
+  },
+});
 ```
 
+**2. `next.config.ts` — add serverExternalPackages**
+
 ```typescript
-// sentry.server.config.ts
-import { libsqlIntegration } from "sentry-integration-libsql-client";
+const nextConfig: NextConfig = {
+  // Externalize @libsql/client so instrumentation and page handlers share the
+  // same module instance — required for Sentry's libsql integration monkey-patching
+  serverExternalPackages: ["@libsql/client"],
+  images: {
+    // ... existing config
+  },
+};
+```
+
+**3. `sentry.server.config.ts` — inline libsql integration**
+
+```typescript
+import * as Sentry from "@sentry/nextjs";
+import { vercelAIIntegration } from "@sentry/nextjs";
+import type { Client } from "@libsql/client";
 import { getClient } from "./lib/db";
 
+function libsqlIntegration(client: Client) {
+  return {
+    name: "LibsqlIntegration",
+    setupOnce() {
+      const originalExecute = client.execute.bind(client);
+      client.execute = function (stmt) {
+        const sql = typeof stmt === "string" ? stmt : stmt.sql;
+        return Sentry.startSpan(
+          {
+            op: "db.query",
+            name: sql,
+            attributes: {
+              "db.system": "sqlite",
+              "db.statement": sql,
+            },
+          },
+          async (span) => {
+            try {
+              const result = await originalExecute(stmt);
+              span.setAttribute("db.rows_affected", result.rowsAffected);
+              span.setStatus({ code: 1 });
+              return result;
+            } catch (error) {
+              span.setStatus({ code: 2 });
+              throw error;
+            }
+          },
+        );
+      };
+    },
+  };
+}
+
 Sentry.init({
-  dsn: process.env.SENTRY_DSN,
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 1,
   enableLogs: true,
+  sendDefaultPii: true,
   tracePropagationTargets: [/^\//, /\.turso\.io/],
-  integrations: [
-    libsqlIntegration(getClient(), Sentry),
-  ],
+  integrations: [libsqlIntegration(getClient()), vercelAIIntegration()],
 });
 ```
 
 ### Success Criteria
-- Database queries appear as spans in traces
-- You can see query timing and identify slow queries
+- Database queries appear as `db.query` spans in traces with SQL statements as the span name
+- Span attributes include `db.system: "sqlite"` and `db.statement` with the actual SQL
+- You can see query timing and identify slow queries in the trace waterfall
 
 ---
 
@@ -430,5 +513,4 @@ After completing all modules, your app should have:
 - [Server Actions Tracing](https://docs.sentry.io/platforms/javascript/guides/nextjs/tracing/#server-actions)
 - [AI Monitoring](https://docs.sentry.io/platforms/javascript/guides/nextjs/ai-agent-monitoring/)
 - [Structured Logs](https://docs.sentry.io/platforms/javascript/guides/nextjs/logs/)
-- [Turso Integration](https://docs.turso.tech/sdk/ts/integrations/sentry)
 - [next-themes](https://github.com/pacocoursey/next-themes)
