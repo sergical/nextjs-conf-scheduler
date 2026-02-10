@@ -2,27 +2,34 @@ import { type Client, createClient } from "@libsql/client";
 import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "./schema";
 
-let _client: Client | null = null;
-let _db: LibSQLDatabase<typeof schema> | null = null;
+// Store singletons on globalThis so the instrumentation bundle (where Sentry
+// patches client.execute) and page-handler bundles share the same instance.
+const CLIENT_KEY = "__libsql_client" as const;
+const DB_KEY = "__drizzle_db" as const;
+
+declare global {
+  var __libsql_client: Client | undefined;
+  var __drizzle_db: LibSQLDatabase<typeof schema> | undefined;
+}
 
 export function getClient(): Client {
-  if (!_client) {
+  if (!globalThis[CLIENT_KEY]) {
     if (!process.env.TURSO_DATABASE_URL) {
       throw new Error("TURSO_DATABASE_URL environment variable is not set");
     }
-    _client = createClient({
+    globalThis[CLIENT_KEY] = createClient({
       url: process.env.TURSO_DATABASE_URL,
       authToken: process.env.TURSO_AUTH_TOKEN,
     });
   }
-  return _client;
+  return globalThis[CLIENT_KEY];
 }
 
 export function getDb() {
-  if (!_db) {
-    _db = drizzle(getClient(), { schema });
+  if (!globalThis[DB_KEY]) {
+    globalThis[DB_KEY] = drizzle(getClient(), { schema });
   }
-  return _db;
+  return globalThis[DB_KEY];
 }
 
 // For backwards compatibility - creates db on first access
