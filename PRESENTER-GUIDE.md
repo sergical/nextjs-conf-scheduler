@@ -77,23 +77,26 @@ pnpm dev
 ```
 
 **Demo flow:**
-1. Open app → click the theme toggle (light/dark)
-2. **Show the hydration error** in the browser console
+1. Open app → click the theme toggle to dark mode
+2. **Refresh the page** → show the hydration error in the browser console
 3. Switch to Sentry → find the hydration error in Issues
-4. Walk through the error details — "Sentry caught this automatically"
+4. Walk through the error details — "Sentry caught this automatically — server rendered Sun, client rendered Moon"
 5. Open `components/theme-provider.tsx` — show the broken code reading `localStorage` during SSR
-6. **Write the fix:** Replace with `next-themes` ThemeProvider
-7. Open `app/layout.tsx` — wrap children with `<ThemeProvider>`
-8. Refresh → toggle theme → no error
-9. Switch to Sentry → "The issue is resolved"
+6. Open `components/theme-toggle.tsx` — show the conditional rendering that causes the mismatch
+7. **Write the fix:** Replace theme-provider with `next-themes`, update toggle to use CSS-based icon switching
+8. Open `app/layout.tsx` — wrap children with `<ThemeProvider>`, add `suppressHydrationWarning`
+9. Refresh → toggle theme → no error
+10. Switch to Sentry → "The issue is resolved"
 
 **Talking points:**
 - Sentry captures React errors automatically — no manual try/catch needed
 - Hydration errors are one of the most common Next.js bugs
-- The error detail in Sentry shows exactly what mismatched
+- The error detail in Sentry shows exactly what mismatched (Sun vs Moon icon)
+- The fix is two-part: use `next-themes` for SSR-safe theme state, and use CSS (not conditional rendering) to toggle icons
 
 **Files touched:**
 - `components/theme-provider.tsx`
+- `components/theme-toggle.tsx`
 - `app/layout.tsx`
 
 ---

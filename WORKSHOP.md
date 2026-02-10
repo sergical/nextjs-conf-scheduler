@@ -62,21 +62,23 @@ Module 5: AI Monitoring     → "What did the AI do?"
 
 ### The Bug
 
-The theme switcher is broken. When you toggle between light/dark mode, you'll see a hydration error. The current implementation reads `localStorage` during server-side rendering, causing a mismatch.
+The theme switcher is broken. When you toggle to dark mode and refresh, you'll see a hydration error. The custom theme provider reads `localStorage` during SSR, and the toggle conditionally renders `<Sun>` or `<Moon>` based on the theme state — so the server renders one icon while the client renders another.
 
 ### Steps
 
 1. Start the dev server: `pnpm dev`
-2. Open the app and click the theme toggle
-3. Open Sentry and find the hydration error
-4. Look at the error details - what's causing the mismatch?
+2. Click the theme toggle to switch to dark mode
+3. **Refresh the page**
+4. Open the browser console and Sentry — find the hydration error
+5. Look at the error details — what's causing the mismatch?
 
 ### Your Task
 
-Fix the theme provider to handle SSR correctly.
+Fix the theme provider, toggle, and layout to handle SSR correctly.
 
 **Hint:** The `next-themes` library handles this properly. Look at:
 - `components/theme-provider.tsx`
+- `components/theme-toggle.tsx`
 - `app/layout.tsx`
 
 ### The Fix
@@ -95,6 +97,30 @@ export function ThemeProvider({
 ```
 
 ```tsx
+// components/theme-toggle.tsx - use next-themes and CSS-based icon toggle
+"use client";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
+
+export function ThemeToggle() {
+  const { setTheme, theme } = useTheme();
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      aria-label="Toggle theme"
+    >
+      <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+    </Button>
+  );
+}
+```
+
+```tsx
 // app/layout.tsx - wrap children with ThemeProvider
 <html lang="en" suppressHydrationWarning>
   <body>
@@ -108,6 +134,7 @@ export function ThemeProvider({
 ### Success Criteria
 - No hydration errors in Sentry
 - Theme toggle works without page refresh
+- No flash of unstyled content on refresh
 
 ---
 
