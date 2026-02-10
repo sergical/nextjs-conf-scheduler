@@ -30,6 +30,9 @@ export const libsqlClient = new Proxy({} as Client, {
   get(_target, prop) {
     return Reflect.get(getClient(), prop);
   },
+  set(_target, prop, value) {
+    return Reflect.set(getClient(), prop, value);
+  },
 });
 
 // For backwards compatibility - creates db on first access
