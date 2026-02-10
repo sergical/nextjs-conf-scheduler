@@ -304,7 +304,7 @@ import { createClient, Client } from "@libsql/client";
 
 let _client: Client | null = null;
 
-function getClient(): Client {
+export function getClient(): Client {
   if (!_client) {
     _client = createClient({
       url: process.env.TURSO_DATABASE_URL!,
@@ -313,25 +313,19 @@ function getClient(): Client {
   }
   return _client;
 }
-
-// Export for Sentry integration
-export const libsqlClient = new Proxy({} as Client, {
-  get(_target, prop) {
-    return Reflect.get(getClient(), prop);
-  },
-});
 ```
 
 ```typescript
 // sentry.server.config.ts
 import { libsqlIntegration } from "sentry-integration-libsql-client";
-import { libsqlClient } from "./lib/db";
+import { getClient } from "./lib/db";
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   enableLogs: true,
+  tracePropagationTargets: [/^\//, /\.turso\.io/],
   integrations: [
-    libsqlIntegration(libsqlClient, Sentry),
+    libsqlIntegration(getClient(), Sentry),
   ],
 });
 ```

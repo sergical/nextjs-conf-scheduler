@@ -5,7 +5,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { vercelAIIntegration } from "@sentry/nextjs";
 import { libsqlIntegration } from "sentry-integration-libsql-client";
-import { libsqlClient } from "./lib/db";
+import { getClient } from "./lib/db";
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -17,6 +17,9 @@ Sentry.init({
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
 
+  // Propagate tracing headers to same-origin requests and Turso DB
+  tracePropagationTargets: [/^\//, /\.turso\.io/],
+
   // Add integrations for database and AI tracing
-  integrations: [libsqlIntegration(libsqlClient, Sentry), vercelAIIntegration()],
+  integrations: [libsqlIntegration(getClient(), Sentry), vercelAIIntegration()],
 });
