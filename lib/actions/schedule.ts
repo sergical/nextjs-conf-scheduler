@@ -9,6 +9,8 @@ import { db } from "@/lib/db";
 import { userSchedules } from "@/lib/db/schema";
 
 export async function addToSchedule(talkId: string) {
+  const startTime = Date.now();
+
   return Sentry.withServerActionInstrumentation(
     "schedule.addToSchedule",
     { headers: await headers() },
@@ -23,10 +25,12 @@ export async function addToSchedule(talkId: string) {
         .limit(1);
 
       if (existing.length > 0) {
-        Sentry.metrics.count("schedule_add_duplicate");
+        Sentry.metrics.count("schedule_add", 1, {
+          attributes: { action: "add", result: "duplicate", user_id: userId, talk_id: talkId },
+        });
         Sentry.metrics.distribution("schedule_operation_duration", Date.now() - startTime, {
           unit: "millisecond",
-          attributes: { action: "add" },
+          attributes: { action: "add", result: "duplicate", user_id: userId, talk_id: talkId },
         });
         Sentry.logger.info("Schedule add attempted - already exists", {
           action: "schedule.addToSchedule",
@@ -48,10 +52,12 @@ export async function addToSchedule(talkId: string) {
       revalidatePath("/my-schedule");
       revalidatePath(`/talks/${talkId}`);
 
-      Sentry.metrics.count("schedule_add_success");
+      Sentry.metrics.count("schedule_add", 1, {
+        attributes: { action: "add", result: "success", user_id: userId, talk_id: talkId },
+      });
       Sentry.metrics.distribution("schedule_operation_duration", Date.now() - startTime, {
         unit: "millisecond",
-        attributes: { action: "add" },
+        attributes: { action: "add", result: "success", user_id: userId, talk_id: talkId },
       });
       Sentry.logger.info("Schedule item added", {
         action: "schedule.addToSchedule",
@@ -67,6 +73,8 @@ export async function addToSchedule(talkId: string) {
 }
 
 export async function removeFromSchedule(talkId: string) {
+  const startTime = Date.now();
+
   return Sentry.withServerActionInstrumentation(
     "schedule.removeFromSchedule",
     { headers: await headers() },
@@ -81,10 +89,12 @@ export async function removeFromSchedule(talkId: string) {
       revalidatePath("/my-schedule");
       revalidatePath(`/talks/${talkId}`);
 
-      Sentry.metrics.count("schedule_remove_success");
+      Sentry.metrics.count("schedule_remove", 1, {
+        attributes: { action: "remove", result: "success", user_id: userId, talk_id: talkId },
+      });
       Sentry.metrics.distribution("schedule_operation_duration", Date.now() - startTime, {
         unit: "millisecond",
-        attributes: { action: "remove" },
+        attributes: { action: "remove", result: "success", user_id: userId, talk_id: talkId },
       });
       Sentry.logger.info("Schedule item removed", {
         action: "schedule.removeFromSchedule",

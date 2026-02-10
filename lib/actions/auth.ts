@@ -27,6 +27,8 @@ export type AuthState = {
 };
 
 export async function signup(_prevState: AuthState, formData: FormData): Promise<AuthState> {
+  const startTime = Date.now();
+
   return Sentry.withServerActionInstrumentation(
     "auth.signup",
     { headers: await headers() },
@@ -85,10 +87,14 @@ export async function signup(_prevState: AuthState, formData: FormData): Promise
 
       await createSession(userId);
 
-      Sentry.metrics.count("auth_signup_success");
+      Sentry.setUser({ id: userId, email, username: name });
+
+      Sentry.metrics.count("auth_signup", 1, {
+        attributes: { action: "signup", result: "success", user_id: userId },
+      });
       Sentry.metrics.distribution("auth_operation_duration", Date.now() - startTime, {
         unit: "millisecond",
-        attributes: { action: "signup", result: "success" },
+        attributes: { action: "signup", result: "success", user_id: userId },
       });
       Sentry.logger.info("User signed up", {
         action: "auth.signup",
@@ -103,6 +109,8 @@ export async function signup(_prevState: AuthState, formData: FormData): Promise
 }
 
 export async function login(_prevState: AuthState, formData: FormData): Promise<AuthState> {
+  const startTime = Date.now();
+
   return Sentry.withServerActionInstrumentation(
     "auth.login",
     { headers: await headers() },
@@ -135,8 +143,8 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
       const user = found[0];
 
       if (!user) {
-        Sentry.metrics.count("auth_login_failed", 1, {
-          attributes: { reason: "user_not_found" },
+        Sentry.metrics.count("auth_login", 1, {
+          attributes: { action: "login", result: "user_not_found" },
         });
         Sentry.metrics.distribution("auth_operation_duration", Date.now() - startTime, {
           unit: "millisecond",
@@ -154,12 +162,12 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
       const passwordMatch = await compare(password, user.password);
 
       if (!passwordMatch) {
-        Sentry.metrics.count("auth_login_failed", 1, {
-          attributes: { reason: "invalid_password" },
+        Sentry.metrics.count("auth_login", 1, {
+          attributes: { action: "login", result: "invalid_password", user_id: user.id },
         });
         Sentry.metrics.distribution("auth_operation_duration", Date.now() - startTime, {
           unit: "millisecond",
-          attributes: { action: "login", result: "invalid_password" },
+          attributes: { action: "login", result: "invalid_password", user_id: user.id },
         });
         Sentry.logger.info("Login failed - invalid password", {
           action: "auth.login",
@@ -172,10 +180,14 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
 
       await createSession(user.id);
 
-      Sentry.metrics.count("auth_login_success");
+      Sentry.setUser({ id: user.id, email: user.email, username: user.name });
+
+      Sentry.metrics.count("auth_login", 1, {
+        attributes: { action: "login", result: "success", user_id: user.id },
+      });
       Sentry.metrics.distribution("auth_operation_duration", Date.now() - startTime, {
         unit: "millisecond",
-        attributes: { action: "login", result: "success" },
+        attributes: { action: "login", result: "success", user_id: user.id },
       });
       Sentry.logger.info("User logged in", {
         action: "auth.login",
@@ -190,13 +202,19 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
 }
 
 export async function logout() {
+  const startTime = Date.now();
+
   await Sentry.withServerActionInstrumentation(
     "auth.logout",
     { headers: await headers() },
     async () => {
       await deleteSession();
 
-      Sentry.metrics.count("auth_logout");
+      Sentry.setUser(null);
+
+      Sentry.metrics.count("auth_logout", 1, {
+        attributes: { action: "logout", result: "success" },
+      });
       Sentry.metrics.distribution("auth_operation_duration", Date.now() - startTime, {
         unit: "millisecond",
         attributes: { action: "logout", result: "success" },
